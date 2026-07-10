@@ -45,8 +45,10 @@ import {
   deleteProduct,
   updateOrderStatus,
   updateProduct,
+  uploadProductImage,
   useOrders,
   useProducts,
+  ALLOWED_IMAGE_TYPES,
   type ProductInput,
 } from "@/lib/store";
 import { ORDER_STATUSES, type OrderStatus, type Product } from "@/lib/types";
