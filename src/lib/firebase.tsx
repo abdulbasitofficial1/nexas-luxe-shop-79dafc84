@@ -20,7 +20,6 @@ interface FirebaseContextValue {
   app: FirebaseApp | null;
   auth: Auth | null;
   db: Firestore | null;
-  storage: FirebaseStorage | null;
   user: User | null;
   ready: boolean;
   error: string | null;
