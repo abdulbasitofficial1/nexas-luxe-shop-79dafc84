@@ -14,12 +14,14 @@ import {
   type User,
 } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
+import { getStorage, type FirebaseStorage } from "firebase/storage";
 import { getFirebaseConfig } from "./firebase-config.functions";
 
 interface FirebaseContextValue {
   app: FirebaseApp | null;
   auth: Auth | null;
   db: Firestore | null;
+  storage: FirebaseStorage | null;
   user: User | null;
   ready: boolean;
   error: string | null;
