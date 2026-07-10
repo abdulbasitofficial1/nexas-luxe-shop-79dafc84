@@ -34,6 +34,7 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
     app: null,
     auth: null,
     db: null,
+    storage: null,
     user: null,
     ready: false,
     error: null,
