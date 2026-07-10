@@ -254,6 +254,53 @@ function CheckoutModal({
             </Select>
             {errors.payment && <p className="text-xs text-destructive">{errors.payment}</p>}
           </div>
+
+          {needsTxn(form.payment) && (
+            <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+              <p className="text-sm">
+                {form.payment} Number:{" "}
+                <span className="font-semibold text-primary">{PAYMENT_ACCOUNTS[form.payment]}</span>
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Send payment to {PAYMENT_ACCOUNTS[form.payment]} and enter your Transaction ID.
+              </p>
+              <div className="space-y-1.5">
+                <Label htmlFor="ck-txn">Transaction ID</Label>
+                <Input
+                  id="ck-txn"
+                  value={form.transactionId}
+                  onChange={(e) => set("transactionId", e.target.value)}
+                  placeholder="e.g. 1234567890"
+                />
+                {errors.transactionId && (
+                  <p className="text-xs text-destructive">{errors.transactionId}</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {form.payment === "Cash on Delivery" && (
+            <div className="rounded-lg border border-border/60 bg-secondary/40 p-3 text-sm">
+              Cash on Delivery charges: Rs {COD_FEE}
+            </div>
+          )}
+
+          <div className="space-y-1 rounded-lg border border-border/60 bg-secondary/40 p-3 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Subtotal</span>
+              <span>Rs {total.toLocaleString()}</span>
+            </div>
+            {codFee > 0 && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">COD Fee</span>
+                <span>Rs {codFee.toLocaleString()}</span>
+              </div>
+            )}
+            <div className="flex justify-between border-t border-border/60 pt-1 font-semibold">
+              <span>Total</span>
+              <span className="text-primary">Rs {grandTotal.toLocaleString()}</span>
+            </div>
+          </div>
           <Button type="submit" variant="gold" className="w-full" disabled={submitting}>
             {submitting && <Loader2 className="size-4 animate-spin" />}
             Confirm Order
