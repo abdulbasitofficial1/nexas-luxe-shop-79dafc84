@@ -95,10 +95,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         property: "og:description",
         content:
-          "Discover a handpicked collection of premium products at NexasStore. Elegant, secure, effortless shopping across Pakistan.",
+          "NexasStore offers a curated luxury shopping experience in Pakistan. Premium products, secure ordering, and fast delivery with EasyPaisa, JazzCash & Cash on Delivery.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "NexasStore — Premium Online Shopping in Pakistan" },
+      { name: "twitter:description", content: "NexasStore offers a curated luxury shopping experience in Pakistan. Premium products, secure ordering, and fast delivery with EasyPaisa, JazzCash & Cash on Delivery." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/b192f61e-8086-427f-909b-234865c432ff/id-preview-68b18ee4--b5cccce6-0b15-407a-9b2e-cb6a9ff57784.lovable.app-1783677880304.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/b192f61e-8086-427f-909b-234865c432ff/id-preview-68b18ee4--b5cccce6-0b15-407a-9b2e-cb6a9ff57784.lovable.app-1783677880304.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
