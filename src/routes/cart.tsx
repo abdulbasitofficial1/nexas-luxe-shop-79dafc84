@@ -189,20 +189,17 @@ function CheckoutModal({
     setSubmitting(true);
     try {
       const txn = needsTxn(form.payment) ? form.transactionId.trim() : "";
-      // COD fee is applied once (to the first order only) for the whole cart.
-      let first = true;
       for (const item of items) {
         await placeOrder(db, {
           customerName: form.name.trim(),
           phoneNumber: form.phone.trim(),
           address: form.address.trim(),
           quantity: item.quantity,
-          paymentMethod: first ? form.payment : `${form.payment} (item)`,
+          paymentMethod: form.payment,
           transactionId: txn,
           productName: item.name,
           productPrice: item.price,
         });
-        first = false;
       }
       toast.success("Order placed successfully! We'll contact you shortly.");
       clear();
