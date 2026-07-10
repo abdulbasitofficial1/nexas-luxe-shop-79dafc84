@@ -14,12 +14,14 @@ import {
   type User,
 } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
+import { getStorage, type FirebaseStorage } from "firebase/storage";
 import { getFirebaseConfig } from "./firebase-config.functions";
 
 interface FirebaseContextValue {
   app: FirebaseApp | null;
   auth: Auth | null;
   db: Firestore | null;
+  storage: FirebaseStorage | null;
   user: User | null;
   ready: boolean;
   error: string | null;
@@ -32,6 +34,7 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
     app: null,
     auth: null,
     db: null,
+    storage: null,
     user: null,
     ready: false,
     error: null,
@@ -53,12 +56,13 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
         const app = initializeApp(config);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        const storage = getStorage(app);
 
         unsub = onAuthStateChanged(auth, (user) => {
           setState((prev) => ({ ...prev, user, ready: true }));
         });
 
-        setState((prev) => ({ ...prev, app, auth, db, ready: true }));
+        setState((prev) => ({ ...prev, app, auth, db, storage, ready: true }));
       } catch (err) {
         setState((prev) => ({
           ...prev,

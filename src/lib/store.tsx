@@ -11,8 +11,58 @@ import {
   updateDoc,
   type Firestore,
 } from "firebase/firestore";
+import {
+  getDownloadURL,
+  ref,
+  uploadBytesResumable,
+  type FirebaseStorage,
+} from "firebase/storage";
 import { useFirebase } from "./firebase";
 import type { Order, OrderStatus, Product } from "./types";
+
+export const ALLOWED_IMAGE_TYPES = [
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+] as const;
+
+/**
+ * Upload a product image to Firebase Storage and return its download URL.
+ * Reports progress (0-100) via the optional callback.
+ */
+export function uploadProductImage(
+  storage: FirebaseStorage,
+  file: File,
+  onProgress?: (pct: number) => void,
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const path = `products/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const storageRef = ref(storage, path);
+    const task = uploadBytesResumable(storageRef, file, {
+      contentType: file.type,
+      cacheControl: "public,max-age=31536000,immutable",
+    });
+    task.on(
+      "state_changed",
+      (snap) => {
+        const pct = snap.totalBytes
+          ? Math.round((snap.bytesTransferred / snap.totalBytes) * 100)
+          : 0;
+        onProgress?.(pct);
+      },
+      (err) => reject(err),
+      async () => {
+        try {
+          resolve(await getDownloadURL(task.snapshot.ref));
+        } catch (err) {
+          reject(err);
+        }
+      },
+    );
+  });
+}
 
 /** Real-time products subscription. */
 export function useProducts() {
