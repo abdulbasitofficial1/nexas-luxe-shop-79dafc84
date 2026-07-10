@@ -21,7 +21,12 @@ import {
 } from "@/components/ui/select";
 import { useFirebase } from "@/lib/firebase";
 import { placeOrder } from "@/lib/store";
-import { PAYMENT_METHODS, type Product } from "@/lib/types";
+import {
+  COD_FEE,
+  PAYMENT_ACCOUNTS,
+  PAYMENT_METHODS,
+  type Product,
+} from "@/lib/types";
 
 interface OrderModalProps {
   product: Product | null;
@@ -35,9 +40,20 @@ interface FormState {
   address: string;
   quantity: string;
   payment: string;
+  transactionId: string;
 }
 
-const empty: FormState = { name: "", phone: "", address: "", quantity: "1", payment: "" };
+const empty: FormState = {
+  name: "",
+  phone: "",
+  address: "",
+  quantity: "1",
+  payment: "",
+  transactionId: "",
+};
+
+const needsTxn = (payment: string) =>
+  payment === "EasyPaisa" || payment === "JazzCash";
 
 export function OrderModal({ product, open, onOpenChange }: OrderModalProps) {
   const { db } = useFirebase();
@@ -50,6 +66,11 @@ export function OrderModal({ product, open, onOpenChange }: OrderModalProps) {
     setErrors((e) => ({ ...e, [key]: undefined }));
   };
 
+  const qty = Math.max(1, Number(form.quantity) || 1);
+  const subtotal = product ? product.price * qty : 0;
+  const codFee = form.payment === "Cash on Delivery" ? COD_FEE : 0;
+  const totalAmount = subtotal + codFee;
+
   const validate = () => {
     const next: Partial<Record<keyof FormState, string>> = {};
     if (!form.name.trim()) next.name = "Name is required.";
@@ -57,10 +78,12 @@ export function OrderModal({ product, open, onOpenChange }: OrderModalProps) {
     else if (!/^[0-9+\-\s]{7,15}$/.test(form.phone.trim()))
       next.phone = "Enter a valid phone number.";
     if (!form.address.trim()) next.address = "Address is required.";
-    const qty = Number(form.quantity);
-    if (!form.quantity.trim() || Number.isNaN(qty) || qty < 1)
+    const q = Number(form.quantity);
+    if (!form.quantity.trim() || Number.isNaN(q) || q < 1)
       next.quantity = "Quantity is required.";
     if (!form.payment) next.payment = "Select a payment method.";
+    if (needsTxn(form.payment) && !form.transactionId.trim())
+      next.transactionId = "Transaction ID is required.";
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -78,8 +101,9 @@ export function OrderModal({ product, open, onOpenChange }: OrderModalProps) {
         customerName: form.name.trim(),
         phoneNumber: form.phone.trim(),
         address: form.address.trim(),
-        quantity: Number(form.quantity),
+        quantity: qty,
         paymentMethod: form.payment,
+        transactionId: needsTxn(form.payment) ? form.transactionId.trim() : "",
         productName: product.name,
         productPrice: product.price,
       });
@@ -150,13 +174,53 @@ export function OrderModal({ product, open, onOpenChange }: OrderModalProps) {
             {errors.payment && <p className="text-xs text-destructive">{errors.payment}</p>}
           </div>
 
-          {product && (
-            <div className="rounded-lg border border-border/60 bg-secondary/40 p-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Total</span>
+          {needsTxn(form.payment) && (
+            <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+              <p className="text-sm">
+                {form.payment} Number:{" "}
                 <span className="font-semibold text-primary">
-                  Rs {(product.price * Math.max(1, Number(form.quantity) || 1)).toLocaleString()}
+                  {PAYMENT_ACCOUNTS[form.payment]}
                 </span>
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Send payment to {PAYMENT_ACCOUNTS[form.payment]} and enter your Transaction ID.
+              </p>
+              <div className="space-y-1.5">
+                <Label htmlFor="o-txn">Transaction ID</Label>
+                <Input
+                  id="o-txn"
+                  value={form.transactionId}
+                  onChange={(e) => set("transactionId", e.target.value)}
+                  placeholder="e.g. 1234567890"
+                />
+                {errors.transactionId && (
+                  <p className="text-xs text-destructive">{errors.transactionId}</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {form.payment === "Cash on Delivery" && (
+            <div className="rounded-lg border border-border/60 bg-secondary/40 p-3 text-sm">
+              Cash on Delivery charges: Rs {COD_FEE}
+            </div>
+          )}
+
+          {product && (
+            <div className="space-y-1 rounded-lg border border-border/60 bg-secondary/40 p-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Subtotal</span>
+                <span>Rs {subtotal.toLocaleString()}</span>
+              </div>
+              {codFee > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">COD Fee</span>
+                  <span>Rs {codFee.toLocaleString()}</span>
+                </div>
+              )}
+              <div className="flex justify-between border-t border-border/60 pt-1 font-semibold">
+                <span>Total</span>
+                <span className="text-primary">Rs {totalAmount.toLocaleString()}</span>
               </div>
             </div>
           )}
