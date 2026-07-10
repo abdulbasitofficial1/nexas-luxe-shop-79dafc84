@@ -23,7 +23,7 @@ import {
 import { useCart } from "@/lib/cart-context";
 import { useFirebase } from "@/lib/firebase";
 import { placeOrder } from "@/lib/store";
-import { PAYMENT_METHODS } from "@/lib/types";
+import { COD_FEE, PAYMENT_ACCOUNTS, PAYMENT_METHODS } from "@/lib/types";
 
 export const Route = createFileRoute("/cart")({
   component: Cart,
