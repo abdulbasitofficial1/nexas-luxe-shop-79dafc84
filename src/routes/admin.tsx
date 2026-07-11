@@ -110,12 +110,16 @@ function Admin() {
         <TabsList>
           <TabsTrigger value="orders">Orders</TabsTrigger>
           <TabsTrigger value="products">Products</TabsTrigger>
+          <TabsTrigger value="reviews">Reviews</TabsTrigger>
         </TabsList>
         <TabsContent value="orders" className="mt-6">
           <OrdersPanel />
         </TabsContent>
         <TabsContent value="products" className="mt-6">
           <ProductsPanel />
+        </TabsContent>
+        <TabsContent value="reviews" className="mt-6">
+          <ReviewsPanel />
         </TabsContent>
       </Tabs>
     </div>
