@@ -12,7 +12,63 @@ import {
   type Firestore,
 } from "firebase/firestore";
 import { useFirebase } from "./firebase";
-import { COD_FEE, type Order, type OrderStatus, type Product } from "./types";
+import { COD_FEE, type Order, type OrderStatus, type Product, type Review } from "./types";
+
+/**
+ * Real-time reviews subscription.
+ * Reviews are ordered by newest first and filtered client-side so no
+ * composite Firestore index is required. Pass `approvedOnly` for the
+ * public storefront; the admin dashboard passes `false` to see everything.
+ */
+export function useReviews(approvedOnly = true) {
+  const { db, ready } = useFirebase();
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!db) {
+      if (ready) setLoading(false);
+      return;
+    }
+    const q = query(collection(db, "reviews"), orderBy("createdAt", "desc"));
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const all = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Review, "id">) }));
+        setReviews(approvedOnly ? all.filter((r) => r.approved) : all);
+        setLoading(false);
+      },
+      () => setLoading(false),
+    );
+    return unsub;
+  }, [db, ready, approvedOnly]);
+
+  return { reviews, loading };
+}
+
+export interface NewReviewInput {
+  customerName: string;
+  rating: number;
+  message: string;
+}
+
+export async function submitReview(db: Firestore, input: NewReviewInput) {
+  await addDoc(collection(db, "reviews"), {
+    customerName: input.customerName,
+    rating: input.rating,
+    message: input.message,
+    approved: false,
+    createdAt: Date.now(),
+  });
+}
+
+export async function approveReview(db: Firestore, id: string, approved: boolean) {
+  await updateDoc(doc(db, "reviews", id), { approved });
+}
+
+export async function deleteReview(db: Firestore, id: string) {
+  await deleteDoc(doc(db, "reviews", id));
+}
 
 
 /** Real-time products subscription. */

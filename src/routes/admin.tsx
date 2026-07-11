@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { signOut } from "firebase/auth";
 import { toast } from "sonner";
-import { CheckCircle2, Loader2, LogOut, Pencil, Plus, ShieldAlert, Trash2, XCircle } from "lucide-react";
+import { CheckCircle2, Loader2, LogOut, Pencil, Plus, ShieldAlert, Star, Trash2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,12 +42,15 @@ import { useFirebase } from "@/lib/firebase";
 import { useUI } from "@/lib/ui-context";
 import {
   addProduct,
+  approveReview,
   deleteProduct,
+  deleteReview,
   updateOrderStatus,
   updatePaymentVerified,
   updateProduct,
   useOrders,
   useProducts,
+  useReviews,
   type ProductInput,
 } from "@/lib/store";
 import { ORDER_STATUSES, type OrderStatus, type Product } from "@/lib/types";
@@ -107,12 +110,16 @@ function Admin() {
         <TabsList>
           <TabsTrigger value="orders">Orders</TabsTrigger>
           <TabsTrigger value="products">Products</TabsTrigger>
+          <TabsTrigger value="reviews">Reviews</TabsTrigger>
         </TabsList>
         <TabsContent value="orders" className="mt-6">
           <OrdersPanel />
         </TabsContent>
         <TabsContent value="products" className="mt-6">
           <ProductsPanel />
+        </TabsContent>
+        <TabsContent value="reviews" className="mt-6">
+          <ReviewsPanel />
         </TabsContent>
       </Tabs>
     </div>
@@ -510,5 +517,139 @@ function ProductFormDialog({
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ReviewsPanel() {
+  const { db } = useFirebase();
+  const { reviews, loading } = useReviews(false);
+  const [filter, setFilter] = useState<"All" | "Pending" | "Approved">("All");
+
+  const filtered = useMemo(() => {
+    return reviews.filter((r) =>
+      filter === "All" ? true : filter === "Approved" ? r.approved : !r.approved,
+    );
+  }, [reviews, filter]);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <Select value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
+          <SelectTrigger className="w-44">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="All">All Reviews</SelectItem>
+            <SelectItem value="Pending">Pending Approval</SelectItem>
+            <SelectItem value="Approved">Approved</SelectItem>
+          </SelectContent>
+        </Select>
+        <span className="ml-auto text-sm text-muted-foreground">{filtered.length} review(s)</span>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-16">
+          <Loader2 className="size-8 animate-spin text-primary" />
+        </div>
+      ) : filtered.length === 0 ? (
+        <p className="py-16 text-center text-muted-foreground">No reviews found.</p>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map((r) => (
+            <div key={r.id} className="rounded-xl border border-border/60 bg-card p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">{r.customerName}</span>
+                    <span className="flex items-center gap-0.5">
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <Star
+                          key={i}
+                          className={`size-3.5 ${
+                            i <= r.rating
+                              ? "fill-primary text-primary"
+                              : "fill-transparent text-muted-foreground/40"
+                          }`}
+                        />
+                      ))}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {r.createdAt ? new Date(r.createdAt).toLocaleString() : "—"}
+                  </p>
+                </div>
+                <Badge
+                  variant="outline"
+                  className={
+                    r.approved
+                      ? "border-green-500/30 bg-green-500/15 text-green-400"
+                      : "border-yellow-500/30 bg-yellow-500/15 text-yellow-500"
+                  }
+                >
+                  {r.approved ? "Approved" : "Pending"}
+                </Badge>
+              </div>
+              <p className="mt-3 text-sm text-foreground/90">{r.message}</p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <Button
+                  size="sm"
+                  variant={r.approved ? "outline" : "gold"}
+                  onClick={async () => {
+                    if (!db) return;
+                    try {
+                      await approveReview(db, r.id, !r.approved);
+                      toast.success(r.approved ? "Review hidden" : "Review approved");
+                    } catch {
+                      toast.error("Failed to update review");
+                    }
+                  }}
+                >
+                  {r.approved ? (
+                    <>
+                      <XCircle className="size-4" /> Unapprove
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="size-4" /> Approve
+                    </>
+                  )}
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" variant="ghost" className="text-destructive">
+                      <Trash2 className="size-4" /> Delete
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete this review?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently remove the review from {r.customerName}.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={async () => {
+                          if (!db) return;
+                          try {
+                            await deleteReview(db, r.id);
+                            toast.success("Review deleted");
+                          } catch {
+                            toast.error("Failed to delete review");
+                          }
+                        }}
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
