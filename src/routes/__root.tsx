@@ -16,6 +16,7 @@ import { CartProvider } from "@/lib/cart-context";
 import { UIProvider } from "@/lib/ui-context";
 import { Navbar } from "@/components/nexas/Navbar";
 import { Footer } from "@/components/nexas/Footer";
+import { CancellationNotice } from "@/components/nexas/CancellationNotice";
 import { AdminLoginModal } from "@/components/nexas/AdminLoginModal";
 import { Toaster } from "@/components/ui/sonner";
 
