@@ -105,6 +105,8 @@ function Index() {
         )}
       </section>
 
+      <Reviews />
+
       <ContactSection />
     </>
   );
