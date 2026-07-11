@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { Loader2, PackageSearch, ShieldCheck, Truck, Wallet } from "lucide-react";
 import { Hero } from "@/components/nexas/Hero";
 import { ProductCard } from "@/components/nexas/ProductCard";
+import { Reviews } from "@/components/nexas/Reviews";
 import { ContactSection } from "@/components/nexas/ContactSection";
 import { Button } from "@/components/ui/button";
 import { useProducts } from "@/lib/store";
