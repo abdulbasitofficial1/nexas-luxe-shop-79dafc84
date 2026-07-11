@@ -55,3 +55,7 @@ export const PAYMENT_ACCOUNTS: Record<string, string> = {
 
 /** Payment methods that require the customer to enter a Transaction ID. */
 export const TXN_PAYMENT_METHODS = ["EasyPaisa", "JazzCash"] as const;
+
+/** WhatsApp contact number for order cancellations (local + international format). */
+export const WHATSAPP_NUMBER = "03219965754";
+export const WHATSAPP_INTL = "923219965754";
