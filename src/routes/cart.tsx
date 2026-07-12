@@ -217,12 +217,12 @@ function CheckoutModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="font-display text-2xl">Checkout</DialogTitle>
-          <DialogDescription>
-            Total: <span className="font-semibold text-primary">Rs {total.toLocaleString()}</span> ·{" "}
-            {items.length} item(s)
-          </DialogDescription>
-        </DialogHeader>
+  <DialogTitle className="font-display text-2xl">Checkout</DialogTitle>
+  <DialogDescription>
+    Grand Total: <span className="font-semibold text-primary">Rs {grandTotal.toLocaleString()}</span> ·{" "}
+    {items.length} item(s)
+  </DialogDescription>
+</DialogHeader>
 
         <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
           <p>🚚 Delivery Charges: Rs. {DELIVERY_CHARGE} Nationwide</p>
