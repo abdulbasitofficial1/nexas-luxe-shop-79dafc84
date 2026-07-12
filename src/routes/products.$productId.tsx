@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { OrderModal } from "@/components/nexas/OrderModal";
 import { useFirebase } from "@/lib/firebase";
 import { useCart } from "@/lib/cart-context";
-import type { Product } from "@/lib/types";
+import { DELIVERY_CHARGE, DELIVERY_TIME, type Product } from "@/lib/types";
 
 export const Route = createFileRoute("/products/$productId")({
   component: ProductDetails,
@@ -111,6 +111,11 @@ function ProductDetails() {
                 +
               </button>
             </div>
+          </div>
+
+          <div className="mt-6 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
+            <p>🚚 Delivery Charges: Rs. {DELIVERY_CHARGE} Nationwide</p>
+            <p className="mt-1 text-muted-foreground">📦 Estimated Delivery Time: {DELIVERY_TIME}</p>
           </div>
 
           <div className="mt-6 flex flex-wrap gap-3">
