@@ -23,6 +23,8 @@ import { useFirebase } from "@/lib/firebase";
 import { placeOrder } from "@/lib/store";
 import {
   COD_FEE,
+  DELIVERY_CHARGE,
+  DELIVERY_TIME,
   PAYMENT_ACCOUNTS,
   PAYMENT_METHODS,
   type Product,
@@ -69,7 +71,7 @@ export function OrderModal({ product, open, onOpenChange }: OrderModalProps) {
   const qty = Math.max(1, Number(form.quantity) || 1);
   const subtotal = product ? product.price * qty : 0;
   const codFee = form.payment === "Cash on Delivery" ? COD_FEE : 0;
-  const totalAmount = subtotal + codFee;
+  const totalAmount = subtotal + DELIVERY_CHARGE + codFee;
 
   const validate = () => {
     const next: Partial<Record<keyof FormState, string>> = {};
@@ -133,6 +135,11 @@ export function OrderModal({ product, open, onOpenChange }: OrderModalProps) {
             )}
           </DialogDescription>
         </DialogHeader>
+
+        <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
+          <p>🚚 Delivery Charges: Rs. {DELIVERY_CHARGE} Nationwide</p>
+          <p className="mt-1 text-muted-foreground">📦 Estimated Delivery Time: {DELIVERY_TIME}</p>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <div className="space-y-1.5">
@@ -209,8 +216,12 @@ export function OrderModal({ product, open, onOpenChange }: OrderModalProps) {
           {product && (
             <div className="space-y-1 rounded-lg border border-border/60 bg-secondary/40 p-3 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Subtotal</span>
+                <span className="text-muted-foreground">Product Total</span>
                 <span>Rs {subtotal.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Delivery Charges</span>
+                <span>Rs {DELIVERY_CHARGE.toLocaleString()}</span>
               </div>
               {codFee > 0 && (
                 <div className="flex justify-between">
@@ -219,11 +230,15 @@ export function OrderModal({ product, open, onOpenChange }: OrderModalProps) {
                 </div>
               )}
               <div className="flex justify-between border-t border-border/60 pt-1 font-semibold">
-                <span>Total</span>
+                <span>Grand Total</span>
                 <span className="text-primary">Rs {totalAmount.toLocaleString()}</span>
               </div>
             </div>
           )}
+
+          <p className="text-center text-xs text-muted-foreground">
+            Orders are delivered within {DELIVERY_TIME.toLowerCase()} across Pakistan.
+          </p>
 
           <Button type="submit" variant="gold" className="w-full" disabled={submitting}>
             {submitting && <Loader2 className="size-4 animate-spin" />}

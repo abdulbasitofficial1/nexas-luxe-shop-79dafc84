@@ -18,6 +18,7 @@ export interface Order {
   quantity: number;
   paymentMethod: string;
   transactionId: string;
+  deliveryCharge: number;
   codFee: number;
   subtotal: number;
   totalAmount: number;
@@ -46,6 +47,12 @@ export const ORDER_STATUSES: OrderStatus[] = ["Pending", "Processing", "Complete
 
 /** Delivery/handling fee applied only to Cash on Delivery orders. */
 export const COD_FEE = 60;
+
+/** Flat nationwide delivery charge applied to every order. */
+export const DELIVERY_CHARGE = 150;
+
+/** Estimated delivery time shown to customers. */
+export const DELIVERY_TIME = "3–5 Working Days";
 
 /** Payment account numbers shown to customers at checkout. */
 export const PAYMENT_ACCOUNTS: Record<string, string> = {
