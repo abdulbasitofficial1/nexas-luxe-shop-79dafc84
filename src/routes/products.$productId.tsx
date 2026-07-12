@@ -95,6 +95,17 @@ function ProductDetails() {
           </p>
           <p className="mt-6 leading-relaxed text-muted-foreground">{product.description}</p>
 
+          <div className="mt-6">
+  <p className="mb-2 font-medium">Available Colors</p>
+  <div className="flex flex-wrap gap-2">
+    <button className="rounded border px-3 py-1">Black</button>
+    <button className="rounded border px-3 py-1">White</button>
+    <button className="rounded border px-3 py-1">Blue</button>
+    <button className="rounded border px-3 py-1">Gold</button>
+    <button className="rounded border px-3 py-1">Silver</button>
+  </div>
+</div>
+
           <div className="mt-8 flex items-center gap-4">
             <div className="flex items-center rounded-lg border border-border/60">
               <button
