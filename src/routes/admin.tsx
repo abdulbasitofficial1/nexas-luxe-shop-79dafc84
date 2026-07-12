@@ -510,6 +510,52 @@ function ProductFormDialog({
             )}
           </div>
 
+<div className="space-y-1.5">
+  <Label htmlFor="p-colors">Colors</Label>
+  <Input
+    id="p-colors"
+    placeholder="Black, White, Blue"
+    value={(form as any).colors?.join(", ") || ""}
+    onChange={(e) =>
+      setForm({
+        ...form,
+        colors: e.target.value.split(",").map((c) => c.trim()),
+      } as any)
+    }
+  />
+</div>
+
+<div className="space-y-1.5">
+  <Label htmlFor="p-sizes">Sizes</Label>
+  <Input
+    id="p-sizes"
+    placeholder="S, M, L, XL"
+    value={(form as any).sizes?.join(", ") || ""}
+    onChange={(e) =>
+      setForm({
+        ...form,
+        sizes: e.target.value.split(",").map((s) => s.trim()),
+      } as any)
+    }
+  />
+</div>
+
+<div className="space-y-1.5">
+  <Label htmlFor="p-delivery">Delivery Charges</Label>
+  <Input
+    id="p-delivery"
+    type="number"
+    min={0}
+    value={(form as any).deliveryCharges || ""}
+    onChange={(e) =>
+      setForm({
+        ...form,
+        deliveryCharges: Number(e.target.value),
+      } as any)
+    }
+  />
+</div>
+          
           <Button type="submit" variant="gold" className="w-full" disabled={saving}>
             {saving && <Loader2 className="size-4 animate-spin" />}
             {editing ? "Save Changes" : "Add Product"}
