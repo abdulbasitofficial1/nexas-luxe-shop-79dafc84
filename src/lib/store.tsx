@@ -12,7 +12,7 @@ import {
   type Firestore,
 } from "firebase/firestore";
 import { useFirebase } from "./firebase";
-import { COD_FEE, type Order, type OrderStatus, type Product, type Review } from "./types";
+import { COD_FEE, DELIVERY_CHARGE, type Order, type OrderStatus, type Product, type Review } from "./types";
 
 /**
  * Real-time reviews subscription.
@@ -139,8 +139,9 @@ export interface NewOrderInput {
 export async function placeOrder(db: Firestore, input: NewOrderInput) {
   const createdAt = Date.now();
   const subtotal = input.productPrice * input.quantity;
+  const deliveryCharge = DELIVERY_CHARGE;
   const codFee = input.paymentMethod === "Cash on Delivery" ? COD_FEE : 0;
-  const totalAmount = subtotal + codFee;
+  const totalAmount = subtotal + deliveryCharge + codFee;
 
   const order: Omit<Order, "id"> = {
     customerName: input.customerName,
@@ -149,6 +150,7 @@ export async function placeOrder(db: Firestore, input: NewOrderInput) {
     quantity: input.quantity,
     paymentMethod: input.paymentMethod,
     transactionId: input.transactionId,
+    deliveryCharge,
     codFee,
     subtotal,
     totalAmount,
@@ -175,6 +177,7 @@ export async function placeOrder(db: Firestore, input: NewOrderInput) {
           <tr><td><b>Price</b></td><td>Rs ${input.productPrice.toLocaleString()}</td></tr>
           <tr><td><b>Quantity</b></td><td>${input.quantity}</td></tr>
           <tr><td><b>Subtotal</b></td><td>Rs ${subtotal.toLocaleString()}</td></tr>
+          <tr><td><b>Delivery Charges</b></td><td>Rs ${deliveryCharge.toLocaleString()}</td></tr>
           <tr><td><b>COD Fee</b></td><td>Rs ${codFee.toLocaleString()}</td></tr>
           <tr><td><b>Total</b></td><td>Rs ${totalAmount.toLocaleString()}</td></tr>
           <tr><td><b>Customer</b></td><td>${input.customerName}</td></tr>
