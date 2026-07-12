@@ -23,7 +23,7 @@ import {
 import { useCart } from "@/lib/cart-context";
 import { useFirebase } from "@/lib/firebase";
 import { placeOrder } from "@/lib/store";
-import { COD_FEE, PAYMENT_ACCOUNTS, PAYMENT_METHODS } from "@/lib/types";
+import { COD_FEE, DELIVERY_CHARGE, DELIVERY_TIME, PAYMENT_ACCOUNTS, PAYMENT_METHODS } from "@/lib/types";
 
 export const Route = createFileRoute("/cart")({
   component: Cart,
@@ -165,7 +165,7 @@ function CheckoutModal({
   };
 
   const codFee = form.payment === "Cash on Delivery" ? COD_FEE : 0;
-  const grandTotal = total + codFee;
+  const grandTotal = total + DELIVERY_CHARGE + codFee;
 
   const validate = () => {
     const next: Partial<Record<keyof FormState, string>> = {};
