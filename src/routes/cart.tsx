@@ -224,6 +224,11 @@ function CheckoutModal({
           </DialogDescription>
         </DialogHeader>
 
+        <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
+          <p>🚚 Delivery Charges: Rs. {DELIVERY_CHARGE} Nationwide</p>
+          <p className="mt-1 text-muted-foreground">📦 Estimated Delivery Time: {DELIVERY_TIME}</p>
+        </div>
+
         <form onSubmit={submit} className="space-y-4" noValidate>
           <div className="space-y-1.5">
             <Label htmlFor="ck-name">Name</Label>
@@ -287,8 +292,12 @@ function CheckoutModal({
 
           <div className="space-y-1 rounded-lg border border-border/60 bg-secondary/40 p-3 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Subtotal</span>
+              <span className="text-muted-foreground">Product Total</span>
               <span>Rs {total.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Delivery Charges</span>
+              <span>Rs {DELIVERY_CHARGE.toLocaleString()}</span>
             </div>
             {codFee > 0 && (
               <div className="flex justify-between">
@@ -297,10 +306,15 @@ function CheckoutModal({
               </div>
             )}
             <div className="flex justify-between border-t border-border/60 pt-1 font-semibold">
-              <span>Total</span>
+              <span>Grand Total</span>
               <span className="text-primary">Rs {grandTotal.toLocaleString()}</span>
             </div>
           </div>
+
+          <p className="text-center text-xs text-muted-foreground">
+            Orders are delivered within {DELIVERY_TIME.toLowerCase()} across Pakistan.
+          </p>
+
           <Button type="submit" variant="gold" className="w-full" disabled={submitting}>
             {submitting && <Loader2 className="size-4 animate-spin" />}
             Confirm Order
