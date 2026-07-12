@@ -23,6 +23,8 @@ import { useFirebase } from "@/lib/firebase";
 import { placeOrder } from "@/lib/store";
 import {
   COD_FEE,
+  DELIVERY_CHARGE,
+  DELIVERY_TIME,
   PAYMENT_ACCOUNTS,
   PAYMENT_METHODS,
   type Product,
@@ -69,7 +71,7 @@ export function OrderModal({ product, open, onOpenChange }: OrderModalProps) {
   const qty = Math.max(1, Number(form.quantity) || 1);
   const subtotal = product ? product.price * qty : 0;
   const codFee = form.payment === "Cash on Delivery" ? COD_FEE : 0;
-  const totalAmount = subtotal + codFee;
+  const totalAmount = subtotal + DELIVERY_CHARGE + codFee;
 
   const validate = () => {
     const next: Partial<Record<keyof FormState, string>> = {};
