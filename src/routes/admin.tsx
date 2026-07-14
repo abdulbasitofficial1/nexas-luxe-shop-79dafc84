@@ -276,12 +276,22 @@ function OrdersPanel() {
   );
 }
 
-const emptyProduct: ProductInput = {
+interface ProductFormState {
+  name: string;
+  price: number;
+  category: string;
+  description: string;
+  images: string[];
+  options: { name: string; values: string[] }[];
+}
+
+const emptyProduct: ProductFormState = {
   name: "",
   price: 0,
-  image: "",
   category: "",
   description: "",
+  images: [""],
+  options: [],
 };
 
 function ProductsPanel() {
