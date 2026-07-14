@@ -400,29 +400,68 @@ function ProductFormDialog({
   editing: Product | null;
 }) {
   const { db } = useFirebase();
-  const [form, setForm] = useState<ProductInput>(emptyProduct);
+  const [form, setForm] = useState<ProductFormState>(emptyProduct);
   const [saving, setSaving] = useState(false);
   const [initId, setInitId] = useState<string | null>(null);
-  const [urlOk, setUrlOk] = useState<boolean | null>(null);
 
   // Sync form when dialog opens or target changes.
   const targetId = editing?.id ?? "new";
   if (open && initId !== targetId) {
     setInitId(targetId);
-    setUrlOk(null);
     setForm(
       editing
         ? {
             name: editing.name,
             price: editing.price,
-            image: editing.image,
             category: editing.category,
             description: editing.description,
+            images:
+              editing.images && editing.images.length
+                ? [...editing.images]
+                : [editing.image || ""],
+            options: editing.options ? editing.options.map((o) => ({ ...o, values: [...o.values] })) : [],
           }
         : emptyProduct,
     );
   }
   if (!open && initId !== null) setInitId(null);
+
+  // ---- Image field helpers ----
+  const setImage = (i: number, value: string) =>
+    setForm((f) => ({ ...f, images: f.images.map((img, idx) => (idx === i ? value : img)) }));
+  const addImage = () => setForm((f) => ({ ...f, images: [...f.images, ""] }));
+  const removeImage = (i: number) =>
+    setForm((f) => ({ ...f, images: f.images.filter((_, idx) => idx !== i) }));
+
+  // ---- Option helpers ----
+  const addOption = () =>
+    setForm((f) => ({ ...f, options: [...f.options, { name: "", values: [""] }] }));
+  const removeOption = (oi: number) =>
+    setForm((f) => ({ ...f, options: f.options.filter((_, idx) => idx !== oi) }));
+  const setOptionName = (oi: number, name: string) =>
+    setForm((f) => ({
+      ...f,
+      options: f.options.map((o, idx) => (idx === oi ? { ...o, name } : o)),
+    }));
+  const addValue = (oi: number) =>
+    setForm((f) => ({
+      ...f,
+      options: f.options.map((o, idx) => (idx === oi ? { ...o, values: [...o.values, ""] } : o)),
+    }));
+  const setValue = (oi: number, vi: number, value: string) =>
+    setForm((f) => ({
+      ...f,
+      options: f.options.map((o, idx) =>
+        idx === oi ? { ...o, values: o.values.map((v, vIdx) => (vIdx === vi ? value : v)) } : o,
+      ),
+    }));
+  const removeValue = (oi: number, vi: number) =>
+    setForm((f) => ({
+      ...f,
+      options: f.options.map((o, idx) =>
+        idx === oi ? { ...o, values: o.values.filter((_, vIdx) => vIdx !== vi) } : o,
+      ),
+    }));
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -430,11 +469,18 @@ function ProductFormDialog({
       toast.error("Name, price and category are required.");
       return;
     }
-    const image = form.image.trim();
-    if (!image) {
-      toast.error("Please provide an image URL.");
+    const images = form.images.map((i) => i.trim()).filter(Boolean);
+    if (images.length === 0) {
+      toast.error("Please add at least one image URL.");
       return;
     }
+    const options = form.options
+      .map((o) => ({
+        name: o.name.trim(),
+        values: o.values.map((v) => v.trim()).filter(Boolean),
+      }))
+      .filter((o) => o.name && o.values.length > 0);
+
     if (!db) {
       toast.error("Store not connected.");
       return;
@@ -442,7 +488,15 @@ function ProductFormDialog({
 
     setSaving(true);
     try {
-      const payload = { ...form, image };
+      const payload: ProductInput = {
+        name: form.name.trim(),
+        price: form.price,
+        category: form.category.trim(),
+        description: form.description.trim(),
+        image: images[0],
+        images,
+        options,
+      };
       if (editing) {
         await updateProduct(db, editing.id, payload);
         toast.success("Product updated");
@@ -459,17 +513,15 @@ function ProductFormDialog({
     }
   };
 
-  const previewSrc = form.image.trim() || null;
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="font-display text-2xl">
             {editing ? "Edit Product" : "Add Product"}
           </DialogTitle>
         </DialogHeader>
-        <form onSubmit={submit} className="space-y-4">
+        <form onSubmit={submit} className="space-y-5">
           <div className="space-y-1.5">
             <Label htmlFor="p-name">Product Name</Label>
             <Input id="p-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
@@ -493,79 +545,120 @@ function ProductFormDialog({
             <Textarea id="p-desc" rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="p-img">Image URL</Label>
-            <Input
-              id="p-img"
-              value={form.image}
-              onChange={(e) => {
-                setForm({ ...form, image: e.target.value });
-                setUrlOk(null);
-              }}
-              placeholder="https://..."
-            />
-            {form.image.trim() && urlOk === false && (
-              <p className="text-xs text-destructive">This image URL could not be loaded.</p>
-            )}
-            {previewSrc && (
-              <div className="mt-2 overflow-hidden rounded-lg border border-border/60">
-                <img
-                  src={previewSrc}
-                  alt="Preview"
-                  className="h-40 w-full object-cover"
-                  onLoad={() => setUrlOk(true)}
-                  onError={() => setUrlOk(false)}
-                />
-              </div>
-            )}
+          {/* Product Images */}
+          <div className="space-y-3 rounded-lg border border-border/60 p-3">
+            <div className="flex items-center justify-between">
+              <Label>Product Images</Label>
+              <Button type="button" size="sm" variant="goldOutline" onClick={addImage}>
+                <Plus className="size-4" /> Add Image
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              The first image is used as the main thumbnail.
+            </p>
+            <div className="space-y-3">
+              {form.images.map((img, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  {img.trim() ? (
+                    <img
+                      src={img.trim()}
+                      alt={`Preview ${i + 1}`}
+                      className="size-14 shrink-0 rounded-md border border-border/60 object-cover"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src =
+                          "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='56' height='56'><rect width='100%25' height='100%25' fill='%23222'/></svg>";
+                      }}
+                    />
+                  ) : (
+                    <div className="grid size-14 shrink-0 place-items-center rounded-md border border-dashed border-border/60 text-[10px] text-muted-foreground">
+                      {i === 0 ? "Main" : `#${i + 1}`}
+                    </div>
+                  )}
+                  <Input
+                    value={img}
+                    onChange={(e) => setImage(i, e.target.value)}
+                    placeholder="https://..."
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="shrink-0 text-destructive"
+                    onClick={() => removeImage(i)}
+                    disabled={form.images.length === 1}
+                    aria-label="Remove image"
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
           </div>
 
-<div className="space-y-1.5">
-  <Label htmlFor="p-colors">Colors</Label>
-  <Input
-    id="p-colors"
-    placeholder="Black, White, Blue"
-    value={(form as any).colors?.join(", ") || ""}
-    onChange={(e) =>
-      setForm({
-        ...form,
-        colors: e.target.value.split(",").map((c) => c.trim()),
-      } as any)
-    }
-  />
-</div>
+          {/* Product Options */}
+          <div className="space-y-3 rounded-lg border border-border/60 p-3">
+            <div className="flex items-center justify-between">
+              <Label>Product Options</Label>
+              <Button type="button" size="sm" variant="goldOutline" onClick={addOption}>
+                <Plus className="size-4" /> Add Option
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              e.g. Color → Black, White · Size → S, M, L
+            </p>
+            {form.options.length === 0 && (
+              <p className="text-xs text-muted-foreground">No options added.</p>
+            )}
+            <div className="space-y-4">
+              {form.options.map((opt, oi) => (
+                <div key={oi} className="space-y-2 rounded-lg border border-border/60 bg-secondary/30 p-3">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={opt.name}
+                      onChange={(e) => setOptionName(oi, e.target.value)}
+                      placeholder="Option name (e.g. Color)"
+                    />
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="shrink-0 text-destructive"
+                      onClick={() => removeOption(oi)}
+                      aria-label="Remove option"
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {opt.values.map((val, vi) => (
+                      <div key={vi} className="flex items-center gap-2">
+                        <Input
+                          value={val}
+                          onChange={(e) => setValue(oi, vi, e.target.value)}
+                          placeholder={`Value ${vi + 1} (e.g. Black)`}
+                        />
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="shrink-0 text-destructive"
+                          onClick={() => removeValue(oi, vi)}
+                          disabled={opt.values.length === 1}
+                          aria-label="Remove value"
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                  <Button type="button" size="sm" variant="ghost" onClick={() => addValue(oi)}>
+                    <Plus className="size-4" /> Add Value
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
 
-<div className="space-y-1.5">
-  <Label htmlFor="p-sizes">Sizes</Label>
-  <Input
-    id="p-sizes"
-    placeholder="S, M, L, XL"
-    value={(form as any).sizes?.join(", ") || ""}
-    onChange={(e) =>
-      setForm({
-        ...form,
-        sizes: e.target.value.split(",").map((s) => s.trim()),
-      } as any)
-    }
-  />
-</div>
-
-<div className="space-y-1.5">
-  <Label htmlFor="p-delivery">Delivery Charges</Label>
-  <Input
-    id="p-delivery"
-    type="number"
-    min={0}
-    value={(form as any).deliveryCharges || ""}
-    onChange={(e) =>
-      setForm({
-        ...form,
-        deliveryCharges: Number(e.target.value),
-      } as any)
-    }
-  />
-</div>
-          
           <Button type="submit" variant="gold" className="w-full" disabled={saving}>
             {saving && <Loader2 className="size-4 animate-spin" />}
             {editing ? "Save Changes" : "Add Product"}
