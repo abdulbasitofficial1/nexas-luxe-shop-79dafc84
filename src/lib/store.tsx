@@ -134,6 +134,7 @@ export interface NewOrderInput {
   transactionId: string;
   productName: string;
   productPrice: number;
+  selectedOptions?: { name: string; value: string }[];
 }
 
 export async function placeOrder(db: Firestore, input: NewOrderInput) {
@@ -157,6 +158,7 @@ export async function placeOrder(db: Firestore, input: NewOrderInput) {
     paymentVerified: false,
     productName: input.productName,
     productPrice: input.productPrice,
+    selectedOptions: input.selectedOptions ?? [],
     orderStatus: "Pending",
     createdAt,
   };
@@ -176,6 +178,13 @@ export async function placeOrder(db: Firestore, input: NewOrderInput) {
           <tr><td><b>Product</b></td><td>${input.productName}</td></tr>
           <tr><td><b>Price</b></td><td>Rs ${input.productPrice.toLocaleString()}</td></tr>
           <tr><td><b>Quantity</b></td><td>${input.quantity}</td></tr>
+          ${
+            input.selectedOptions && input.selectedOptions.length
+              ? `<tr><td><b>Options</b></td><td>${input.selectedOptions
+                  .map((o) => `${o.name}: ${o.value}`)
+                  .join(", ")}</td></tr>`
+              : ""
+          }
           <tr><td><b>Subtotal</b></td><td>Rs ${subtotal.toLocaleString()}</td></tr>
           <tr><td><b>Delivery Charges</b></td><td>Rs ${deliveryCharge.toLocaleString()}</td></tr>
           <tr><td><b>COD Fee</b></td><td>Rs ${codFee.toLocaleString()}</td></tr>
