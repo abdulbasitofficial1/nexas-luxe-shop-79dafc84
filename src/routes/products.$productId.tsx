@@ -1,9 +1,10 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { OrderModal } from "@/components/nexas/OrderModal";
 import { useFirebase } from "@/lib/firebase";
 import { useCart } from "@/lib/cart-context";
@@ -13,6 +14,9 @@ export const Route = createFileRoute("/products/$productId")({
   component: ProductDetails,
 });
 
+const FALLBACK =
+  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='600'><rect width='100%25' height='100%25' fill='%23222'/><text x='50%25' y='50%25' fill='%23888' font-size='24' text-anchor='middle' dominant-baseline='middle'>No Image</text></svg>";
+
 function ProductDetails() {
   const { productId } = useParams({ from: "/products/$productId" });
   const { db, ready } = useFirebase();
@@ -21,6 +25,9 @@ function ProductDetails() {
   const [loading, setLoading] = useState(true);
   const [qty, setQty] = useState(1);
   const [orderOpen, setOrderOpen] = useState(false);
+  const [activeImg, setActiveImg] = useState(0);
+  const [selected, setSelected] = useState<Record<string, string>>({});
+  const [optionError, setOptionError] = useState(false);
 
   useEffect(() => {
     if (!db) {
@@ -34,6 +41,8 @@ function ProductDetails() {
         const snap = await getDoc(doc(db, "products", productId));
         if (active) {
           setProduct(snap.exists() ? ({ id: snap.id, ...(snap.data() as Omit<Product, "id">) }) : null);
+          setActiveImg(0);
+          setSelected({});
         }
       } finally {
         if (active) setLoading(false);
@@ -43,6 +52,21 @@ function ProductDetails() {
       active = false;
     };
   }, [db, ready, productId]);
+
+  const images = useMemo(() => {
+    if (!product) return [];
+    const imgs = product.images?.filter(Boolean) ?? [];
+    return imgs.length ? imgs : [product.image].filter(Boolean);
+  }, [product]);
+
+  const options = product?.options ?? [];
+
+  const ensureOptions = () => {
+    const missing = options.some((o) => !selected[o.name]);
+    setOptionError(missing);
+    if (missing) toast.error("Please select all product options.");
+    return !missing;
+  };
 
   if (loading) {
     return (
@@ -64,6 +88,8 @@ function ProductDetails() {
     );
   }
 
+  const mainSrc = images[activeImg] ?? images[0] ?? product.image;
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <Button asChild variant="ghost" size="sm" className="mb-6 text-muted-foreground">
@@ -73,16 +99,44 @@ function ProductDetails() {
       </Button>
 
       <div className="grid gap-10 lg:grid-cols-2">
-        <div className="overflow-hidden rounded-2xl border border-border/60 bg-secondary/40">
-          <img
-            src={product.image}
-            alt={product.name}
-            className="aspect-square w-full object-cover"
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).src =
-                "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='600'><rect width='100%25' height='100%25' fill='%23222'/><text x='50%25' y='50%25' fill='%23888' font-size='24' text-anchor='middle' dominant-baseline='middle'>No Image</text></svg>";
-            }}
-          />
+        {/* Gallery */}
+        <div className="space-y-3">
+          <div className="overflow-hidden rounded-2xl border border-border/60 bg-secondary/40">
+            <img
+              src={mainSrc}
+              alt={product.name}
+              className="aspect-square w-full object-cover transition-opacity duration-300"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).src = FALLBACK;
+              }}
+            />
+          </div>
+          {images.length > 1 && (
+            <div className="flex flex-wrap gap-2">
+              {images.map((img, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setActiveImg(i)}
+                  className={`size-16 overflow-hidden rounded-lg border transition-all ${
+                    i === activeImg
+                      ? "border-primary ring-2 ring-primary/40"
+                      : "border-border/60 opacity-70 hover:opacity-100"
+                  }`}
+                  aria-label={`View image ${i + 1}`}
+                >
+                  <img
+                    src={img}
+                    alt={`${product.name} ${i + 1}`}
+                    className="size-full object-cover"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = FALLBACK;
+                    }}
+                  />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col">
@@ -95,16 +149,41 @@ function ProductDetails() {
           </p>
           <p className="mt-6 leading-relaxed text-muted-foreground">{product.description}</p>
 
-          <div className="mt-6">
-  <p className="mb-2 font-medium">Available Colors</p>
-  <div className="flex flex-wrap gap-2">
-    <button className="rounded border px-3 py-1">Black</button>
-    <button className="rounded border px-3 py-1">White</button>
-    <button className="rounded border px-3 py-1">Blue</button>
-    <button className="rounded border px-3 py-1">Gold</button>
-    <button className="rounded border px-3 py-1">Silver</button>
-  </div>
-</div>
+          {/* Dynamic option selectors */}
+          {options.length > 0 && (
+            <div className="mt-6 space-y-4">
+              {options.map((opt) => (
+                <div key={opt.name}>
+                  <Label className="mb-2 block font-medium">{opt.name}</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {opt.values.map((value) => {
+                      const active = selected[opt.name] === value;
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => {
+                            setSelected((s) => ({ ...s, [opt.name]: value }));
+                            setOptionError(false);
+                          }}
+                          className={`rounded-lg border px-4 py-1.5 text-sm transition-all ${
+                            active
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border/60 hover:border-primary/50"
+                          }`}
+                        >
+                          {value}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+              {optionError && (
+                <p className="text-xs text-destructive">Please select all product options.</p>
+              )}
+            </div>
+          )}
 
           <div className="mt-8 flex items-center gap-4">
             <div className="flex items-center rounded-lg border border-border/60">
@@ -134,20 +213,33 @@ function ProductDetails() {
               variant="goldOutline"
               size="lg"
               onClick={() => {
+                if (!ensureOptions()) return;
                 addItem(product, qty);
                 toast.success(`${product.name} added to cart`);
               }}
             >
               <ShoppingCart className="size-4" /> Add to Cart
             </Button>
-            <Button variant="gold" size="lg" onClick={() => setOrderOpen(true)}>
+            <Button
+              variant="gold"
+              size="lg"
+              onClick={() => {
+                if (!ensureOptions()) return;
+                setOrderOpen(true);
+              }}
+            >
               Place Order
             </Button>
           </div>
         </div>
       </div>
 
-      <OrderModal product={product} open={orderOpen} onOpenChange={setOrderOpen} />
+      <OrderModal
+        product={product}
+        open={orderOpen}
+        onOpenChange={setOrderOpen}
+        initialOptions={selected}
+      />
     </div>
   );
 }
