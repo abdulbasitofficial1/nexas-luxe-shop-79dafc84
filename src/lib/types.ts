@@ -1,3 +1,15 @@
+/** A configurable product option, e.g. { name: "Color", values: ["Black", "White"] }. */
+export interface ProductOption {
+  name: string;
+  values: string[];
+}
+
+/** A single option value chosen by the customer, e.g. { name: "Color", value: "Black" }. */
+export interface SelectedOption {
+  name: string;
+  value: string;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -6,14 +18,11 @@ export interface Product {
   category: string;
   description: string;
 
-  // Multiple Images
+  // Multiple Images (first image is the main thumbnail)
   images?: string[];
 
   // Dynamic Options
-  options?: {
-    name: string;
-    values: string[];
-  }[];
+  options?: ProductOption[];
 
   createdAt?: number;
 }
@@ -34,6 +43,7 @@ export interface Order {
   paymentVerified: boolean;
   productName: string;
   productPrice: number;
+  selectedOptions?: SelectedOption[];
   orderStatus: OrderStatus;
   createdAt?: number;
 }
