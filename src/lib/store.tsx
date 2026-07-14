@@ -134,6 +134,7 @@ export interface NewOrderInput {
   transactionId: string;
   productName: string;
   productPrice: number;
+  selectedOptions?: { name: string; value: string }[];
 }
 
 export async function placeOrder(db: Firestore, input: NewOrderInput) {
@@ -157,6 +158,7 @@ export async function placeOrder(db: Firestore, input: NewOrderInput) {
     paymentVerified: false,
     productName: input.productName,
     productPrice: input.productPrice,
+    selectedOptions: input.selectedOptions ?? [],
     orderStatus: "Pending",
     createdAt,
   };
