@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import {
@@ -34,6 +34,8 @@ interface OrderModalProps {
   product: Product | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Pre-selected option values keyed by option name (from the product page). */
+  initialOptions?: Record<string, string>;
 }
 
 interface FormState {
@@ -57,17 +59,30 @@ const empty: FormState = {
 const needsTxn = (payment: string) =>
   payment === "EasyPaisa" || payment === "JazzCash";
 
-export function OrderModal({ product, open, onOpenChange }: OrderModalProps) {
+export function OrderModal({ product, open, onOpenChange, initialOptions }: OrderModalProps) {
   const { db } = useFirebase();
   const [form, setForm] = useState<FormState>(empty);
+  const [options, setOptions] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
+  const [optionError, setOptionError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // Sync pre-selected options when the dialog opens.
+  useEffect(() => {
+    if (open) setOptions(initialOptions ?? {});
+  }, [open, initialOptions]);
 
   const set = (key: keyof FormState, value: string) => {
     setForm((f) => ({ ...f, [key]: value }));
     setErrors((e) => ({ ...e, [key]: undefined }));
   };
 
+  const setOption = (name: string, value: string) => {
+    setOptions((o) => ({ ...o, [name]: value }));
+    setOptionError(false);
+  };
+
+  const productOptions = product?.options ?? [];
   const qty = Math.max(1, Number(form.quantity) || 1);
   const subtotal = product ? product.price * qty : 0;
   const codFee = form.payment === "Cash on Delivery" ? COD_FEE : 0;
@@ -87,7 +102,11 @@ export function OrderModal({ product, open, onOpenChange }: OrderModalProps) {
     if (needsTxn(form.payment) && !form.transactionId.trim())
       next.transactionId = "Transaction ID is required.";
     setErrors(next);
-    return Object.keys(next).length === 0;
+
+    const missingOption = productOptions.some((o) => !options[o.name]);
+    setOptionError(missingOption);
+
+    return Object.keys(next).length === 0 && !missingOption;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -108,9 +127,11 @@ export function OrderModal({ product, open, onOpenChange }: OrderModalProps) {
         transactionId: needsTxn(form.payment) ? form.transactionId.trim() : "",
         productName: product.name,
         productPrice: product.price,
+        selectedOptions: productOptions.map((o) => ({ name: o.name, value: options[o.name] })),
       });
       toast.success("Order placed successfully! We'll contact you shortly.");
       setForm(empty);
+      setOptions({});
       setErrors({});
       onOpenChange(false);
     } catch {
@@ -142,6 +163,29 @@ export function OrderModal({ product, open, onOpenChange }: OrderModalProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          {productOptions.length > 0 && (
+            <div className="space-y-3 rounded-lg border border-border/60 bg-secondary/40 p-3">
+              {productOptions.map((opt) => (
+                <div key={opt.name} className="space-y-1.5">
+                  <Label>{opt.name}</Label>
+                  <Select value={options[opt.name] ?? ""} onValueChange={(v) => setOption(opt.name, v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={`Select ${opt.name}`} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {opt.values.map((v) => (
+                        <SelectItem key={v} value={v}>{v}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ))}
+              {optionError && (
+                <p className="text-xs text-destructive">Please select all product options.</p>
+              )}
+            </div>
+          )}
+
           <div className="space-y-1.5">
             <Label htmlFor="o-name">Name</Label>
             <Input id="o-name" value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Full name" />
