@@ -38,6 +38,7 @@ export interface Order {
   paymentMethod: string;
   transactionId: string;
   codFee: number;
+  deliveryCharge: number;
   subtotal: number;
   totalAmount: number;
   paymentVerified: boolean;
