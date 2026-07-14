@@ -77,6 +77,12 @@ export const ORDER_STATUSES: OrderStatus[] = [
 /** Delivery/handling fee applied only to Cash on Delivery orders. */
 export const COD_FEE = 60;
 
+/** Flat nationwide delivery charge (Rs). */
+export const DELIVERY_CHARGE = 150;
+
+/** Estimated delivery time shown to customers. */
+export const DELIVERY_TIME = "3–5 Working Days";
+
 /** Payment account numbers shown to customers at checkout. */
 export const PAYMENT_ACCOUNTS: Record<string, string> = {
   EasyPaisa: "03225305296",
