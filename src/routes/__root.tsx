@@ -145,7 +145,7 @@ function RootComponent() {
         <UIProvider>
           <CartProvider>
             <div className="flex min-h-screen flex-col">
-              <CancellationNotice />
+              
               <Navbar />
               <main className="flex-1">
                 {/* Nested routes render here. */}
