@@ -264,3 +264,4 @@ function RelatedProducts({ category, excludeId }: { category: string; excludeId:
       </div>
     </section>
   );
+}
