@@ -60,7 +60,7 @@ const needsTxn = (payment: string) =>
   payment === "EasyPaisa" || payment === "JazzCash";
 
 export function OrderModal({ product, open, onOpenChange, initialOptions }: OrderModalProps) {
-  const { db } = useFirebase();
+  const { db, user } = useFirebase();
   const [form, setForm] = useState<FormState>(empty);
   const [options, setOptions] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
