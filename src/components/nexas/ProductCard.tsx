@@ -1,15 +1,45 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ShoppingCart } from "lucide-react";
+import { Heart, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { OrderModal } from "./OrderModal";
 import { useCart } from "@/lib/cart-context";
+import { useFirebase } from "@/lib/firebase";
+import { addToWishlist, removeFromWishlist, useWishlist } from "@/lib/auth";
+import { cn } from "@/lib/utils";
 import type { Product } from "@/lib/types";
 
 export function ProductCard({ product }: { product: Product }) {
   const { addItem } = useCart();
+  const { db, user } = useFirebase();
+  const { items } = useWishlist();
   const [orderOpen, setOrderOpen] = useState(false);
+
+  const inWishlist = items.some((i) => i.id === product.id);
+
+  const toggleWishlist = async () => {
+    if (!user || !db) {
+      toast.error("Please login to save items to your wishlist.");
+      return;
+    }
+    try {
+      if (inWishlist) {
+        await removeFromWishlist(db, user.uid, product.id);
+        toast.success("Removed from wishlist");
+      } else {
+        await addToWishlist(db, user.uid, {
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          image: product.image,
+        });
+        toast.success("Added to wishlist");
+      }
+    } catch {
+      toast.error("Failed to update wishlist");
+    }
+  };
 
   return (
     <>
@@ -34,12 +64,32 @@ export function ProductCard({ product }: { product: Product }) {
           </span>
         </Link>
 
+        <button
+          type="button"
+          aria-label="Toggle wishlist"
+          onClick={toggleWishlist}
+          className="absolute right-3 top-3 z-10 hidden"
+        />
+
         <div className="flex flex-1 flex-col gap-3 p-4">
-          <Link to="/products/$productId" params={{ productId: product.id }}>
-            <h3 className="line-clamp-1 font-display text-lg font-semibold transition-colors hover:text-primary">
-              {product.name}
-            </h3>
-          </Link>
+          <div className="flex items-start justify-between gap-2">
+            <Link to="/products/$productId" params={{ productId: product.id }} className="min-w-0">
+              <h3 className="line-clamp-1 font-display text-lg font-semibold transition-colors hover:text-primary">
+                {product.name}
+              </h3>
+            </Link>
+            <button
+              type="button"
+              onClick={toggleWishlist}
+              aria-label={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
+              className={cn(
+                "shrink-0 rounded-full p-1.5 transition-colors",
+                inWishlist ? "text-primary" : "text-muted-foreground hover:text-primary",
+              )}
+            >
+              <Heart className={cn("size-5", inWishlist && "fill-current")} />
+            </button>
+          </div>
           <p className="line-clamp-2 text-sm text-muted-foreground">{product.description}</p>
           <p className="mt-auto text-xl font-bold text-gold-gradient">
             Rs {product.price.toLocaleString()}
