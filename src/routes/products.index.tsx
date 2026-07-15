@@ -10,7 +10,7 @@ interface ProductSearch {
   category?: string;
 }
 
-export const Route = createFileRoute("/products")({
+export const Route = createFileRoute("/products/")({
   validateSearch: (search: Record<string, unknown>): ProductSearch => ({
     search: typeof search.search === "string" ? search.search : undefined,
     category: typeof search.category === "string" ? search.category : undefined,
