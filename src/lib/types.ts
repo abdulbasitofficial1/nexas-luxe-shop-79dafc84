@@ -44,9 +44,38 @@ export interface Order {
   paymentVerified: boolean;
   productName: string;
   productPrice: number;
+  productImage?: string;
   selectedOptions?: SelectedOption[];
   orderStatus: OrderStatus;
+  userId?: string;
+  userEmail?: string;
   createdAt?: number;
+}
+
+export interface UserProfile {
+  uid: string;
+  name: string;
+  email: string;
+  photoURL?: string;
+  createdAt?: number;
+}
+
+export interface Address {
+  id: string;
+  label: string;
+  fullName: string;
+  phone: string;
+  line1: string;
+  city: string;
+  createdAt?: number;
+}
+
+export interface WishlistItem {
+  id: string; // productId
+  name: string;
+  price: number;
+  image: string;
+  addedAt?: number;
 }
 
 export interface CartItem extends Product {

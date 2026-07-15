@@ -1,0 +1,50 @@
+rules_version = '2';
+
+// NexasStore Firestore security rules.
+// Deploy in Firebase Console → Firestore Database → Rules.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
+
+    // Public catalog — anyone can read; only admin writes (via console/admin app).
+    match /products/{id} {
+      allow read: if true;
+      allow write: if isSignedIn(); // tighten to admin claim in production
+    }
+
+    // Public approved reviews (client filters approved==true).
+    match /reviews/{id} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if isSignedIn();
+    }
+
+    // Orders — each user only sees their own. Guests may still create.
+    match /orders/{id} {
+      allow create: if true;
+      allow read: if isSignedIn() &&
+        (resource.data.userId == request.auth.uid);
+      allow update, delete: if isSignedIn(); // tighten to admin claim in production
+    }
+
+    // Email queue for the Trigger Email extension.
+    match /mail/{id} {
+      allow create: if true;
+      allow read, update, delete: if false;
+    }
+
+    // Users own their profile + subcollections (addresses, wishlist).
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+
+      match /addresses/{addressId} {
+        allow read, write: if isOwner(uid);
+      }
+      match /wishlist/{productId} {
+        allow read, write: if isOwner(uid);
+      }
+    }
+  }
+}

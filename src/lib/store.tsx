@@ -134,7 +134,10 @@ export interface NewOrderInput {
   transactionId: string;
   productName: string;
   productPrice: number;
+  productImage?: string;
   selectedOptions?: { name: string; value: string }[];
+  userId?: string;
+  userEmail?: string;
 }
 
 export async function placeOrder(db: Firestore, input: NewOrderInput) {
@@ -158,8 +161,11 @@ export async function placeOrder(db: Firestore, input: NewOrderInput) {
     paymentVerified: false,
     productName: input.productName,
     productPrice: input.productPrice,
+    productImage: input.productImage ?? "",
     selectedOptions: input.selectedOptions ?? [],
     orderStatus: "Pending",
+    userId: input.userId ?? "",
+    userEmail: input.userEmail ?? "",
     createdAt,
   };
   await addDoc(collection(db, "orders"), order);
