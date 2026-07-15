@@ -73,6 +73,26 @@ export function Navbar() {
           )}
         </Link>
 
+        {user ? (
+          <Link to="/account" aria-label="Account" className="shrink-0">
+            <Avatar className="size-9 border border-primary/40">
+              <AvatarImage src={user.photoURL ?? undefined} alt={user.displayName ?? "Account"} />
+              <AvatarFallback className="bg-gold-gradient text-xs text-primary-foreground">
+                {(user.displayName || user.email || "U").slice(0, 1).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          </Link>
+        ) : (
+          <Link to="/account" aria-label="Login" className="shrink-0">
+            <Button variant="goldOutline" size="sm" className="hidden sm:inline-flex">
+              <User className="size-4" /> Login
+            </Button>
+            <Button variant="ghost" size="icon" className="sm:hidden text-foreground hover:text-primary">
+              <User className="size-5" />
+            </Button>
+          </Link>
+        )}
+
         <Button
           variant="ghost"
           size="icon"
