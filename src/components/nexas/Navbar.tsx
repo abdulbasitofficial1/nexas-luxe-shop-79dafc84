@@ -16,6 +16,7 @@ const navLinks = [
 
 export function Navbar() {
   const { count } = useCart();
+  const { user } = useFirebase();
   const navigate = useNavigate();
   const [term, setTerm] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
