@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { OrderModal } from "@/components/nexas/OrderModal";
 import { useFirebase } from "@/lib/firebase";
 import { useCart } from "@/lib/cart-context";
+import { useProducts } from "@/lib/store";
+import { ProductCard } from "@/components/nexas/ProductCard";
 import { DELIVERY_CHARGE, DELIVERY_TIME, type Product } from "@/lib/types";
 
 export const Route = createFileRoute("/products/$productId")({
