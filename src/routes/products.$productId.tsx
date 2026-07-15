@@ -236,6 +236,8 @@ function ProductDetails() {
         </div>
       </div>
 
+      <RelatedProducts category={product.category} excludeId={product.id} />
+
       <OrderModal
         product={product}
         open={orderOpen}
@@ -245,3 +247,20 @@ function ProductDetails() {
     </div>
   );
 }
+
+function RelatedProducts({ category, excludeId }: { category: string; excludeId: string }) {
+  const { products } = useProducts();
+  const related = products.filter((p) => p.category === category && p.id !== excludeId).slice(0, 4);
+  if (related.length === 0) return null;
+  return (
+    <section className="mt-16">
+      <h2 className="font-display text-2xl font-bold sm:text-3xl">
+        Related <span className="text-gold-gradient">Products</span>
+      </h2>
+      <div className="mt-6 grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
+        {related.map((p) => (
+          <ProductCard key={p.id} product={p} />
+        ))}
+      </div>
+    </section>
+  );
