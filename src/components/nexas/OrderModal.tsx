@@ -127,7 +127,10 @@ export function OrderModal({ product, open, onOpenChange, initialOptions }: Orde
         transactionId: needsTxn(form.payment) ? form.transactionId.trim() : "",
         productName: product.name,
         productPrice: product.price,
+        productImage: product.image,
         selectedOptions: productOptions.map((o) => ({ name: o.name, value: options[o.name] })),
+        userId: user?.uid,
+        userEmail: user?.email ?? undefined,
       });
       toast.success("Order placed successfully! We'll contact you shortly.");
       setForm(empty);
