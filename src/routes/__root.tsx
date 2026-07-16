@@ -92,6 +92,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "NexasStore offers a curated luxury shopping experience in Pakistan. Premium products, secure ordering, and fast delivery with EasyPaisa, JazzCash & Cash on Delivery.",
       },
       { name: "author", content: "NexasStore" },
+      { name: "google-site-verification", content: "ptNFujzBHL57ZQhbMsYbwDC6cVioib5zth7_Hv_d5YQ" },
       { property: "og:title", content: "NexasStore — Premium Online Shopping in Pakistan" },
       {
         property: "og:description",
