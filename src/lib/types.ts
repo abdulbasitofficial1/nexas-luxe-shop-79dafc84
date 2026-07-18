@@ -101,6 +101,7 @@ export const ORDER_STATUSES: OrderStatus[] = [
   "Pending",
   "Processing",
   "Completed",
+  "Cancelled",
 ];
 
 /** Delivery/handling fee applied only to Cash on Delivery orders. */
