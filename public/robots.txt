@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://nexas-luxe-shop-abdulbasitofficial1s-projects.vercel.app/sitemap.xml
+Sitemap: https://nexas-luxe-shop-79dafc84.vercel.app
