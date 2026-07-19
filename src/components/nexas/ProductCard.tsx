@@ -45,24 +45,25 @@ export function ProductCard({ product }: { product: Product }) {
     <>
       <div className="group flex flex-col overflow-hidden rounded-xl border border-border/60 bg-card shadow-elegant transition-all duration-300 hover:-translate-y-1 hover:border-primary/50">
         <Link
-          to="/products/$productId"
-          params={{ productId: product.id }}
-          className="relative block aspect-square overflow-hidden bg-secondary/40"
-        >
-          <img
-            src={product.image}
-            alt={product.name}
-            loading="lazy"
-            className="size-full object-cover transition-transform duration-500 group-hover:scale-110"
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).src =
-                "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><rect width='100%25' height='100%25' fill='%23222'/><text x='50%25' y='50%25' fill='%23888' font-size='20' text-anchor='middle' dominant-baseline='middle'>No Image</text></svg>";
-            }}
-          />
-          <span className="absolute left-3 top-3 rounded-full bg-background/80 px-3 py-1 text-xs font-medium text-primary backdrop-blur">
-            {product.category}
-          </span>
-        </Link>
+  to="/products/$productId"
+  params={{ productId: product.id }}
+  className="relative block aspect-square overflow-hidden bg-secondary/40"
+>
+  <div className="absolute left-3 top-12 z-10 rounded-full bg-red-600 px-3 py-1 text-xs font-bold text-white shadow-lg">
+    🔥 SALE
+  </div>
+
+  <img
+    src={product.image}
+    alt={product.name}
+    loading="lazy"
+    className="size-full object-cover transition-transform duration-500 group-hover:scale-110"
+  />
+
+  <span className="absolute left-3 top-3 rounded-full bg-background/80 px-3 py-1 text-xs font-medium text-primary backdrop-blur">
+    {product.category}
+  </span>
+</Link>
 
         <button
           type="button"
