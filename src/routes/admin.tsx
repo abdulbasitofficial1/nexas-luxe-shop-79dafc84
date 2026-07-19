@@ -809,35 +809,61 @@ function ReviewsPanel() {
   );
 }
 function ChatPanel() {
+  const { db } = useFirebase();
+  const { messages, loading } = useChats();
+  const [text, setText] = useState("");
+
+  const handleSend = async () => {
+    if (!db || !text.trim()) return;
+
+    await sendMessage(db, "admin", text);
+    setText("");
+  };
+
   return (
     <div className="rounded-xl border border-border/60 bg-card p-6">
       <h2 className="mb-4 text-2xl font-bold">Customer Chats</h2>
 
-      <div className="space-y-3">
-        <div className="rounded-lg border p-3">
-          <p className="font-medium">Customer</p>
-          <p className="text-sm text-muted-foreground">
-            Hello, is this product available?
-          </p>
-        </div>
+      <div className="max-h-[400px] space-y-3 overflow-y-auto">
+        {loading ? (
+          <p>Loading...</p>
+        ) : (
+          messages.map((msg) => (
+            <div
+              key={msg.id}
+              className={`rounded-lg p-3 ${
+                msg.sender === "admin"
+                  ? "border border-primary/30 bg-primary/5"
+                  : "border"
+              }`}
+            >
+              <p
+                className={`font-medium ${
+                  msg.sender === "admin"
+                    ? "text-primary"
+                    : "text-foreground"
+                }`}
+              >
+                {msg.sender === "admin" ? "Admin" : "Customer"}
+              </p>
 
-        <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
-          <p className="font-medium text-primary">Admin</p>
-          <p className="text-sm">Yes, it is available.</p>
-        </div>
+              <p className="text-sm">{msg.message}</p>
+            </div>
+          ))
+        )}
       </div>
 
       <div className="mt-4 flex gap-2">
-        <input
-          type="text"
+        <Input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
           placeholder="Reply..."
-          className="flex-1 rounded-lg border px-3 py-2"
         />
-        <button className="rounded-lg bg-primary px-4 py-2 text-primary-foreground">
+
+        <Button onClick={handleSend}>
           Send
-        </button>
+        </Button>
       </div>
     </div>
   );
 }
-
