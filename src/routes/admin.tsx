@@ -107,11 +107,12 @@ function Admin() {
       </div>
 
       <Tabs defaultValue="orders" className="mt-8">
-        <TabsList>
-          <TabsTrigger value="orders">Orders</TabsTrigger>
-          <TabsTrigger value="products">Products</TabsTrigger>
-          <TabsTrigger value="reviews">Reviews</TabsTrigger>
-        </TabsList>
+       <TabsList>
+  <TabsTrigger value="orders">Orders</TabsTrigger>
+  <TabsTrigger value="products">Products</TabsTrigger>
+  <TabsTrigger value="reviews">Reviews</TabsTrigger>
+  <TabsTrigger value="chat">Chat</TabsTrigger>
+</TabsList>
         <TabsContent value="orders" className="mt-6">
           <OrdersPanel />
         </TabsContent>
@@ -121,7 +122,11 @@ function Admin() {
         <TabsContent value="reviews" className="mt-6">
           <ReviewsPanel />
         </TabsContent>
+         <TabsContent value="chat" className="mt-6">
+  <ChatPanel />
+</TabsContent>
       </Tabs>
+    
     </div>
   );
 }
@@ -804,8 +809,34 @@ function ReviewsPanel() {
 }
 function ChatPanel() {
   return (
-    <div>
-      Admin Chat Here
+    <div className="rounded-xl border border-border/60 bg-card p-6">
+      <h2 className="mb-4 text-2xl font-bold">Customer Chats</h2>
+
+      <div className="space-y-3">
+        <div className="rounded-lg border p-3">
+          <p className="font-medium">Customer</p>
+          <p className="text-sm text-muted-foreground">
+            Hello, is this product available?
+          </p>
+        </div>
+
+        <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
+          <p className="font-medium text-primary">Admin</p>
+          <p className="text-sm">Yes, it is available.</p>
+        </div>
+      </div>
+
+      <div className="mt-4 flex gap-2">
+        <input
+          type="text"
+          placeholder="Reply..."
+          className="flex-1 rounded-lg border px-3 py-2"
+        />
+        <button className="rounded-lg bg-primary px-4 py-2 text-primary-foreground">
+          Send
+        </button>
+      </div>
     </div>
   );
 }
+
