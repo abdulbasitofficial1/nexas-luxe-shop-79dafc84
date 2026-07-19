@@ -112,7 +112,6 @@ function Admin() {
   <TabsTrigger value="orders">Orders</TabsTrigger>
   <TabsTrigger value="products">Products</TabsTrigger>
   <TabsTrigger value="reviews">Reviews</TabsTrigger>
-  <TabsTrigger value="chat">Chat</TabsTrigger>
 </TabsList>
         <TabsContent value="orders" className="mt-6">
           <OrdersPanel />
@@ -123,9 +122,7 @@ function Admin() {
         <TabsContent value="reviews" className="mt-6">
           <ReviewsPanel />
         </TabsContent>
-         <TabsContent value="chat" className="mt-6">
-  <ChatPanel />
-</TabsContent>
+      
       </Tabs>
     
     </div>
