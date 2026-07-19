@@ -4,9 +4,7 @@ import { Button } from "@/components/ui/button";
 
 export function Hero() {
   return (
-<p className="mt-4 text-sm text-muted-foreground">
-  ⭐ Trusted by Customers Across Pakistan
-</p>
+
     <div className="bg-primary py-2 text-center text-sm font-medium text-primary-foreground">
   🚚 Free Delivery Above Rs 3000 | 💵 Cash on Delivery Available | 🔄 7 Day Return Policy
 </div>
