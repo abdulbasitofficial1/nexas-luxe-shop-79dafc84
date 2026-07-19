@@ -207,6 +207,58 @@ export async function placeOrder(db: Firestore, input: NewOrderInput) {
     createdAt: serverTimestamp(),
   });
 }
+// CHAT FUNCTIONS
+
+export interface ChatMessage {
+  id: string;
+  sender: "customer" | "admin";
+  message: string;
+  createdAt: number;
+}
+
+export function useChats() {
+  const { db, ready } = useFirebase();
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!db) {
+      if (ready) setLoading(false);
+      return;
+    }
+
+    const q = query(
+      collection(db, "chats"),
+      orderBy("createdAt", "asc")
+    );
+
+    const unsub = onSnapshot(q, (snap) => {
+      setMessages(
+        snap.docs.map((d) => ({
+          id: d.id,
+          ...(d.data() as Omit<ChatMessage, "id">),
+        }))
+      );
+      setLoading(false);
+    });
+
+    return unsub;
+  }, [db, ready]);
+
+  return { messages, loading };
+}
+
+export async function sendMessage(
+  db: Firestore,
+  sender: "customer" | "admin",
+  message: string
+) {
+  await addDoc(collection(db, "chats"), {
+    sender,
+    message,
+    createdAt: Date.now(),
+  });
+}
 
 export async function updateOrderStatus(db: Firestore, id: string, status: OrderStatus) {
   await updateDoc(doc(db, "orders", id), { orderStatus: status });
