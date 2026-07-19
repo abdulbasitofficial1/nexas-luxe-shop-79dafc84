@@ -16,14 +16,14 @@ export function Hero() {
         </span>
       </div>
 
-    <div className="relative mx-auto flex max-w-7xl flex-col items-center px-4 py-12 text-center sm:px-6 sm:py-16">
+    <div className="relative mx-auto flex max-w-7xl flex-col items-center px-4 py-4 text-center sm:px-6 sm:py-6">
         <div className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-4 py-1.5 text-xs font-medium text-primary">
           <Sparkles className="size-3.5" />
           Pakistan&apos;s Premium Online Store
         </div>
 
         <h1
-          className="animate-fade-up mt-6 max-w-4xl font-display text-4xl font-bold leading-tight sm:text-6xl"
+          className="animate-fade-up mt-6 max-w-4xl font-display text-2xl font-bold leading-tight sm:text-4xl"
           style={{ animationDelay: "0.1s" }}
         >
           Luxury Shopping, <span className="text-gold-gradient">Delivered</span> to Your Door
