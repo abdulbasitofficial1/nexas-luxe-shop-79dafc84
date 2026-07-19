@@ -110,7 +110,7 @@ function Index() {
             </h2>
           </div>
           <div className="flex flex-wrap gap-3">
-            {categories.map((c) => (
+           {categories.slice(0, 6).map((c) => (
               <Link
                 key={c.name}
                 to="/products"
@@ -121,6 +121,11 @@ function Index() {
               </Link>
             ))}
           </div>
+          <div className="mt-6 text-center">
+  <Button asChild variant="outline">
+    <Link to="/products">See All Categories</Link>
+  </Button>
+</div>
         </section>
       )}
 
