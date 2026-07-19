@@ -16,7 +16,7 @@ export function Hero() {
         </span>
       </div>
 
-      <div className="relative mx-auto flex max-w-7xl flex-col items-center px-4 py-24 text-center sm:px-6 sm:py-32">
+    <div className="relative mx-auto flex max-w-7xl flex-col items-center px-4 py-12 text-center sm:px-6 sm:py-16">
         <div className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-4 py-1.5 text-xs font-medium text-primary">
           <Sparkles className="size-3.5" />
           Pakistan&apos;s Premium Online Store
