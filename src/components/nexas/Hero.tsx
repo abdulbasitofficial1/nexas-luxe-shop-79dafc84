@@ -4,6 +4,13 @@ import { Button } from "@/components/ui/button";
 
 export function Hero() {
   return (
+<p className="mt-4 text-sm text-muted-foreground">
+  ⭐ Trusted by Customers Across Pakistan
+</p>
+    <div className="bg-primary py-2 text-center text-sm font-medium text-primary-foreground">
+  🚚 Free Delivery Above Rs 3000 | 💵 Cash on Delivery Available | 🔄 7 Day Return Policy
+</div>
+    
     <section className="relative overflow-hidden bg-[var(--gradient-dark)]">
       {/* Ambient glows */}
       <div className="pointer-events-none absolute -left-32 top-0 size-96 rounded-full bg-primary/10 blur-3xl" />
