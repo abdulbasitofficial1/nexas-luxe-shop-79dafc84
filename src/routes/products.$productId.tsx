@@ -235,11 +235,12 @@ const [activeImg, setActiveImg] = useState(0);
               Place Order
             </Button>
             <Button
-  variant="outline"
+  variant="gold"
   size="lg"
+  className="shadow-lg"
   onClick={() => setChatOpen(true)}
 >
-  Contact Seller
+  💬 Contact Seller
 </Button>
           </div>
         </div>
