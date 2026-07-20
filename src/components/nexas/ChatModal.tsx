@@ -45,8 +45,7 @@ const { messages } = useChats(user?.uid || "");
   setText("");
 };
 
-    setText("");
-  };
+  
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
