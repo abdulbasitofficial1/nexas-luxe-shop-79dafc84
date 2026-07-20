@@ -12,40 +12,30 @@ export function ChatModal({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  
- const { user, db } = useFirebase();
-const { messages } = useChats(user?.uid || "");
+  const { db } = useFirebase();
+
+  // Temporary guest chat
+  const { messages } = useChats("guest-user");
+
   const [text, setText] = useState("");
 
- const handleSend = async () => {
-  console.log("user =", user);
-  console.log("db =", db);
+  const handleSend = async () => {
+    if (!db) return;
+    if (!text.trim()) return;
 
-  if (!db) {
-    console.log("DB missing");
-    return;
-  }
+    try {
+      await sendMessage(
+        db,
+        "guest-user",
+        "customer",
+        text
+      );
 
-  if (!user) {
-    console.log("User missing");
-    alert("Please login first");
-    return;
-  }
-
-  if (!text.trim()) return;
-
-  await sendMessage(
-    db,
-    user.uid,
-    "customer",
-    text
-  );
-
-  console.log("sent");
-  setText("");
-};
-
-  
+      setText("");
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
