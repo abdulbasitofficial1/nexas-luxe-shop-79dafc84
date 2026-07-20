@@ -11,6 +11,7 @@ import { useCart } from "@/lib/cart-context";
 import { useProducts } from "@/lib/store";
 import { ProductCard } from "@/components/nexas/ProductCard";
 import { DELIVERY_CHARGE, DELIVERY_TIME, type Product } from "@/lib/types";
+import { ChatModal } from "@/components/nexas/ChatModal";
 
 export const Route = createFileRoute("/products/$productId")({
   component: ProductDetails,
