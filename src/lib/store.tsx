@@ -211,24 +211,25 @@ export async function placeOrder(db: Firestore, input: NewOrderInput) {
 
 export interface ChatMessage {
   id: string;
+  userId: string;
   sender: "customer" | "admin";
   message: string;
   createdAt: number;
 }
 
-export function useChats() {
+export function useChats(userId: string) {
   const { db, ready } = useFirebase();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!db) {
+    if (!db || !userId) {
       if (ready) setLoading(false);
       return;
     }
 
     const q = query(
-      collection(db, "chats"),
+      collection(db, "chats", userId, "messages"),
       orderBy("createdAt", "asc")
     );
 
@@ -243,21 +244,26 @@ export function useChats() {
     });
 
     return unsub;
-  }, [db, ready]);
+  }, [db, ready, userId]);
 
   return { messages, loading };
 }
 
 export async function sendMessage(
   db: Firestore,
+  userId: string,
   sender: "customer" | "admin",
   message: string
 ) {
-  await addDoc(collection(db, "chats"), {
-    sender,
-    message,
-    createdAt: Date.now(),
-  });
+  await addDoc(
+    collection(db, "chats", userId, "messages"),
+    {
+      userId,
+      sender,
+      message,
+      createdAt: Date.now(),
+    }
+  );
 }
 
 export async function updateOrderStatus(db: Firestore, id: string, status: OrderStatus) {
