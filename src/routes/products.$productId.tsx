@@ -240,7 +240,7 @@ const [activeImg, setActiveImg] = useState(0);
   className="shadow-lg"
   onClick={() => setChatOpen(true)}
 >
-  💬 Contact Seller
+ 💬 Chat with Seller
 </Button>
           </div>
         </div>
