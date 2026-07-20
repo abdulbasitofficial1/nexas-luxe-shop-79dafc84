@@ -13,17 +13,21 @@ export function ChatModal({
   onOpenChange: (open: boolean) => void;
 }) {
   const { db } = useFirebase();
-  const { messages } = useChats();
+ const { user, db } = useFirebase();
+const { messages } = useChats(user?.uid || "");
   const [text, setText] = useState("");
 
   const handleSend = async () => {
     if (!db || !text.trim()) return;
 
-    await sendMessage(
-      db,
-      "customer",
-      text
-    );
+    if (!user) return;
+
+await sendMessage(
+  db,
+  user.uid,
+  "customer",
+  text
+);
 
     setText("");
   };
