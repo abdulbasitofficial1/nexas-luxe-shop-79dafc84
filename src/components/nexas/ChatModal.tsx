@@ -23,7 +23,9 @@ export function ChatModal({
 
           <div className="flex gap-2">
             <Input placeholder="Type message..." />
-            <Button>Send</Button>
+           <Button className="bg-green-600 hover:bg-green-700 text-white">
+  Send
+</Button>
           </div>
         </div>
       </DialogContent>
