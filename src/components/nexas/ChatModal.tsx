@@ -17,17 +17,33 @@ export function ChatModal({
 const { messages } = useChats(user?.uid || "");
   const [text, setText] = useState("");
 
-  const handleSend = async () => {
-    if (!db || !text.trim()) return;
+ const handleSend = async () => {
+  console.log("user =", user);
+  console.log("db =", db);
 
-    if (!user) return;
+  if (!db) {
+    console.log("DB missing");
+    return;
+  }
 
-await sendMessage(
-  db,
-  user.uid,
-  "customer",
-  text
-);
+  if (!user) {
+    console.log("User missing");
+    alert("Please login first");
+    return;
+  }
+
+  if (!text.trim()) return;
+
+  await sendMessage(
+    db,
+    user.uid,
+    "customer",
+    text
+  );
+
+  console.log("sent");
+  setText("");
+};
 
     setText("");
   };
