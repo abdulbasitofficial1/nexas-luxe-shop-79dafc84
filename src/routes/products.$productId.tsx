@@ -248,11 +248,16 @@ const [activeImg, setActiveImg] = useState(0);
       <RelatedProducts category={product.category} excludeId={product.id} />
 
       <OrderModal
-        product={product}
-        open={orderOpen}
-        onOpenChange={setOrderOpen}
-        initialOptions={selected}
-      />
+  product={product}
+  open={orderOpen}
+  onOpenChange={setOrderOpen}
+  initialOptions={selected}
+/>
+
+<ChatModal
+  open={chatOpen}
+  onOpenChange={setChatOpen}
+/>
     </div>
   );
 }
