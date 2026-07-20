@@ -25,9 +25,10 @@ function ProductDetails() {
   const { addItem } = useCart();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
-  const [qty, setQty] = useState(1);
-  const [orderOpen, setOrderOpen] = useState(false);
-  const [activeImg, setActiveImg] = useState(0);
+ const [qty, setQty] = useState(1);
+const [orderOpen, setOrderOpen] = useState(false);
+const [chatOpen, setChatOpen] = useState(false);
+const [activeImg, setActiveImg] = useState(0);
   const [selected, setSelected] = useState<Record<string, string>>({});
   const [optionError, setOptionError] = useState(false);
 
@@ -232,6 +233,13 @@ function ProductDetails() {
             >
               Place Order
             </Button>
+            <Button
+  variant="outline"
+  size="lg"
+  onClick={() => setChatOpen(true)}
+>
+  Contact Seller
+</Button>
           </div>
         </div>
       </div>
