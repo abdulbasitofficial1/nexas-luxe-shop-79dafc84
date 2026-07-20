@@ -12,7 +12,7 @@ export function ChatModal({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { db } = useFirebase();
+  
  const { user, db } = useFirebase();
 const { messages } = useChats(user?.uid || "");
   const [text, setText] = useState("");
