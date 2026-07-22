@@ -253,12 +253,14 @@ export async function sendMessage(
   db: Firestore,
   userId: string,
   sender: "customer" | "admin",
-  message: string
+  message: string,
+  userName?: string
 ) {
   await addDoc(
     collection(db, "chats", userId, "messages"),
     {
       userId,
+      userName: userName || "Customer",
       sender,
       message,
       createdAt: Date.now(),
