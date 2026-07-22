@@ -4,6 +4,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDocs,
   onSnapshot,
   orderBy,
   query,
@@ -13,6 +14,7 @@ import {
 } from "firebase/firestore";
 import { useFirebase } from "./firebase";
 import { COD_FEE, DELIVERY_CHARGE, type Order, type OrderStatus, type Product, type Review } from "./types";
+
 
 /**
  * Real-time reviews subscription.
@@ -24,6 +26,7 @@ export function useReviews(approvedOnly = true) {
   const { db, ready } = useFirebase();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
+  
 
   useEffect(() => {
     if (!db) {
@@ -302,8 +305,6 @@ export async function updateProduct(db: Firestore, id: string, input: ProductInp
 export async function deleteProduct(db: Firestore, id: string) {
   await deleteDoc(doc(db, "products", id));
 }
-import { getDocs } from "firebase/firestore";
-
 export async function getChatUsers(db: Firestore) {
   const snap = await getDocs(collection(db, "chats"));
 
