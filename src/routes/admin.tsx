@@ -807,60 +807,61 @@ function ReviewsPanel() {
 }
 function ChatPanel() {
   const { db } = useFirebase();
-  const { messages, loading } = useChats();
+
+  const selectedUserId = "guest-user";
+
+  const { messages, loading } = useChats(selectedUserId);
+
   const [text, setText] = useState("");
 
   const handleSend = async () => {
     if (!db || !text.trim()) return;
 
-    await sendMessage(db, "admin", text);
+    await sendMessage(
+      db,
+      selectedUserId,
+      "admin",
+      text
+    );
+
     setText("");
   };
 
-  return (
-    <div className="rounded-xl border border-border/60 bg-card p-6">
-      <h2 className="mb-4 text-2xl font-bold">Customer Chats</h2>
+return (
+  <div className="rounded-xl border border-border/60 bg-card p-6">
+    <h2 className="mb-4 text-2xl font-bold">Customer Chats</h2>
 
-      <div className="max-h-[400px] space-y-3 overflow-y-auto">
-        {loading ? (
-          <p>Loading...</p>
-        ) : (
-          messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`rounded-lg p-3 ${
-                msg.sender === "admin"
-                  ? "border border-primary/30 bg-primary/5"
-                  : "border"
-              }`}
-            >
-              <p
-                className={`font-medium ${
-                  msg.sender === "admin"
-                    ? "text-primary"
-                    : "text-foreground"
-                }`}
-              >
-                {msg.sender === "admin" ? "Admin" : "Customer"}
-              </p>
-
-              <p className="text-sm">{msg.message}</p>
-            </div>
-          ))
-        )}
-      </div>
-
-      <div className="mt-4 flex gap-2">
-        <Input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Reply..."
-        />
-
-        <Button onClick={handleSend}>
-          Send
-        </Button>
-      </div>
+    <div className="max-h-[400px] space-y-3 overflow-y-auto">
+      {loading ? (
+        <p>Loading...</p>
+      ) : (
+        messages.map((msg) => (
+          <div
+            key={msg.id}
+            className={`rounded-lg p-3 ${
+              msg.sender === "admin"
+                ? "border border-primary/30 bg-primary/5"
+                : "border"
+            }`}
+          >
+            <p>{msg.sender === "admin" ? "Admin" : "Customer"}</p>
+            <p>{msg.message}</p>
+          </div>
+        ))
+      )}
     </div>
-  );
+
+    <div className="mt-4 flex gap-2">
+      <Input
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="Reply..."
+      />
+
+      <Button onClick={handleSend}>
+        Send
+      </Button>
+    </div>
+  </div>
+);
 }
