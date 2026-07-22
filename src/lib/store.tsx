@@ -300,3 +300,12 @@ export async function updateProduct(db: Firestore, id: string, input: ProductInp
 export async function deleteProduct(db: Firestore, id: string) {
   await deleteDoc(doc(db, "products", id));
 }
+import { getDocs } from "firebase/firestore";
+
+export async function getChatUsers(db: Firestore) {
+  const snap = await getDocs(collection(db, "chats"));
+
+  return snap.docs.map((doc) => ({
+    id: doc.id,
+  }));
+}
