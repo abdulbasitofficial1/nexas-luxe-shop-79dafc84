@@ -52,12 +52,15 @@ export interface Order {
   productPrice: number;
   productImage?: string;
   selectedOptions?: SelectedOption[];
+
+  trackingNumber?: string;
+  courierCompany?: string;
+
   orderStatus: OrderStatus;
   userId?: string;
   userEmail?: string;
   createdAt?: number;
 }
-
 export interface UserProfile {
   uid: string;
   name: string;
