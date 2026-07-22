@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { signOut } from "firebase/auth";
 import { toast } from "sonner";
 import { CheckCircle2, Loader2, LogOut, Pencil, Plus, ShieldAlert, Star, Trash2, XCircle } from "lucide-react";
@@ -51,6 +51,7 @@ import {
   useOrders,
   useProducts,
   useReviews,
+  getChatUsers,
   type ProductInput,
 } from "@/lib/store";
 import { ORDER_STATUSES, type OrderStatus, type Product } from "@/lib/types";
@@ -812,11 +813,25 @@ function ReviewsPanel() {
 function ChatPanel() {
   const { db } = useFirebase();
 
- const selectedUserId = "z0pow1fGZpUKlRQfLfJZ4Uy5B8v2";
+  const [users, setUsers] = useState<any[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState("");
 
   const { messages, loading } = useChats(selectedUserId);
 
   const [text, setText] = useState("");
+
+  useEffect(() => {
+  if (!db) return;
+
+  getChatUsers(db).then((data) => {
+    setUsers(data);
+
+    if (data.length > 0) {
+      setSelectedUserId(data[0].id);
+    }
+  });
+}, [db]);
+
 
   const handleSend = async () => {
     if (!db || !text.trim()) return;
@@ -834,6 +849,20 @@ function ChatPanel() {
 return (
   <div className="rounded-xl border border-border/60 bg-card p-6">
     <h2 className="mb-4 text-2xl font-bold">Customer Chats</h2>
+
+    <div className="mb-4">
+  <select
+    className="w-full border rounded p-2"
+    value={selectedUserId}
+    onChange={(e) => setSelectedUserId(e.target.value)}
+  >
+    {users.map((user) => (
+      <option key={user.id} value={user.id}>
+        {user.id}
+      </option>
+    ))}
+  </select>
+</div>
 
     <div className="max-h-[400px] space-y-3 overflow-y-auto">
       {loading ? (
