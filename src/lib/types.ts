@@ -27,7 +27,13 @@ export interface Product {
   createdAt?: number;
 }
 
-export type OrderStatus = "Pending" | "Processing" | "Completed";
+export type OrderStatus =
+  | "Pending"
+  | "Processing"
+  | "Out for Delivery"
+  | "2nd Delivery Attempt"
+  | "Completed"
+  | "Cancelled";
 
 export interface Order {
   id: string;
@@ -100,6 +106,8 @@ export const PAYMENT_METHODS = [
 export const ORDER_STATUSES: OrderStatus[] = [
   "Pending",
   "Processing",
+  "Out for Delivery",
+  "2nd Delivery Attempt",
   "Completed",
   "Cancelled",
 ];
