@@ -22,24 +22,16 @@ const { messages } = useChats(userId);
 
   const [text, setText] = useState("");
 
-  const handleSend = async () => {
-    if (!db) return;
-    if (!text.trim()) return;
+ const handleSend = async () => {
+  const message = encodeURIComponent(text);
 
-    try {
-await sendMessage(
-  db,
-  userId,
-  "customer",
-  text
-);
+  window.open(
+    `https://wa.me/923219965754?text=${message}`,
+    "_blank"
+  );
 
-      setText("");
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
+  setText("");
+};
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
