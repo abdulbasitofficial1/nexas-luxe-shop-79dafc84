@@ -812,7 +812,7 @@ function ReviewsPanel() {
 function ChatPanel() {
   const { db } = useFirebase();
 
-  const selectedUserId = "guest-user";
+ const selectedUserId = "z0pow1fGZpUKlRQfLfJZ4Uy5B8v2";
 
   const { messages, loading } = useChats(selectedUserId);
 
