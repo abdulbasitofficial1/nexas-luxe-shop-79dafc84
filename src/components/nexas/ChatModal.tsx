@@ -12,10 +12,13 @@ export function ChatModal({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { db } = useFirebase();
+ const { db, auth } = useFirebase();
 
-  // Temporary guest chat
-  const { messages } = useChats("guest-user");
+const userId = auth?.currentUser?.uid || "";
+
+const { messages } = useChats(userId);
+
+
 
   const [text, setText] = useState("");
 
@@ -24,12 +27,12 @@ export function ChatModal({
     if (!text.trim()) return;
 
     try {
-      await sendMessage(
-        db,
-        "guest-user",
-        "customer",
-        text
-      );
+await sendMessage(
+  db,
+  userId,
+  "customer",
+  text
+);
 
       setText("");
     } catch (err) {
