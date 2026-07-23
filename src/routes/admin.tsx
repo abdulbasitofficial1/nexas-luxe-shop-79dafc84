@@ -771,6 +771,9 @@ function ReviewsPanel() {
                   <p className="text-xs text-muted-foreground">
                     {r.createdAt ? new Date(r.createdAt).toLocaleString() : "—"}
                   </p>
+                  <p className="text-sm font-medium text-primary">
+  {r.productName}
+</p>
                 </div>
                 <Badge
                   variant="outline"
@@ -784,6 +787,13 @@ function ReviewsPanel() {
                 </Badge>
               </div>
               <p className="mt-3 text-sm text-foreground/90">{r.message}</p>
+              {r.image && (
+  <img
+    src={r.image}
+    alt="Review"
+    className="mt-3 h-32 w-32 rounded-lg border object-cover"
+  />
+)}
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <Button
                   size="sm"
