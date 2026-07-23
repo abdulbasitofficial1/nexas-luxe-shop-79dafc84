@@ -290,35 +290,8 @@ function OrdersPanel() {
                 </Button>
                 
               
-              </div>
-              <div className="mt-3 grid gap-2 sm:grid-cols-2">
-  <Input
-    placeholder="Courier Company"
-    defaultValue={o.courierCompany || ""}
-    onBlur={async (e) => {
-      if (!db) return;
-
-      await updateDoc(doc(db, "orders", o.id), {
-        courierCompany: e.target.value,
-      });
-    }}
-  />
-
-  <Input
-    placeholder="Tracking Number"
-    defaultValue={o.trackingNumber || ""}
-    onBlur={async (e) => {
-      if (!db) return;
-
-      await updateDoc(doc(db, "orders", o.id), {
-        trackingNumber: e.target.value,
-      });
-    }}
-  />
-</div>
-
-</div>
-              
+                            </div>
+            
             </div>
           ))}
         </div>
