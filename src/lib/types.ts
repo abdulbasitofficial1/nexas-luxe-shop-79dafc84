@@ -56,6 +56,10 @@ export interface Order {
   trackingNumber?: string;
   courierCompany?: string;
 
+  cancelReason?: string;
+  cancelledAt?: number;
+
+
   orderStatus: OrderStatus;
   userId?: string;
   userEmail?: string;
