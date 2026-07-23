@@ -97,9 +97,13 @@ export interface CartItem extends Product {
 
 export interface Review {
   id: string;
+  productId: string;
+  orderId: string;
+  userId: string;
   customerName: string;
   rating: number;
   message: string;
+  images?: string[];
   approved: boolean;
   createdAt?: number;
 }
