@@ -320,7 +320,8 @@ useEffect(() => {
 
   if (loading) return <LoaderBlock />;
   if (!orders.length) return <EmptyBlock icon={<Package className="size-8" />} title="No orders yet" hint="Your placed orders will appear here." />;
-  return (
+ return (
+  <>
     <div className="space-y-3">
       {orders.map((o) => (
         <Card key={o.id}>
@@ -447,7 +448,8 @@ now - o.createdAt <= 5 * 60 * 60 * 1000 && (
 </Button>
         </div>
       </DialogContent>
-    </Dialog>
+       </Dialog>
+  </>
   );
 }
 
