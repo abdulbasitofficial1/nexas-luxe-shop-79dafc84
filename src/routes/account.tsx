@@ -50,6 +50,7 @@ import {
   useWishlist,
 } from "@/lib/auth";
 import type { Address } from "@/lib/types";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export const Route = createFileRoute("/account")({
   head: () => ({
@@ -302,7 +303,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 
 function OrdersTab() {
   const { orders, loading } = useUserOrders();
-  const { db } = useFirebase();
+  const { db, storage } = useFirebase();
   const [reviewOpen, setReviewOpen] = useState(false);
 const [selectedOrder, setSelectedOrder] = useState<any>(null);
 const [reviewText, setReviewText] = useState("");
@@ -422,27 +423,40 @@ now - o.createdAt <= 5 * 60 * 60 * 1000 && (
           
          <Button
   variant="gold"
-  onClick={async () => {
-    if (!db || !selectedOrder) return;
+ onClick={async () => {
+  if (!db || !storage || !selectedOrder) return;
 
-    await addDoc(collection(db, "reviews"), {
-      productId: selectedOrder.productId,
-      productName: selectedOrder.productName,
-      customerName: selectedOrder.customerName,
-      userId: selectedOrder.userId,
-      rating,
-      message: reviewText,
-      image: reviewImage ? reviewImage.name : "",
-      approved: false,
-      createdAt: Date.now(),
-    });
+  let imageUrl = "";
 
-    toast.success("Review submitted for approval");
+  if (reviewImage) {
+    const imageRef = ref(
+      storage,
+      `reviews/${Date.now()}-${reviewImage.name}`
+    );
 
-    setReviewText("");
-    setRating(5);
-    setReviewOpen(false);
-  }}
+    await uploadBytes(imageRef, reviewImage);
+    imageUrl = await getDownloadURL(imageRef);
+  }
+
+  await addDoc(collection(db, "reviews"), {
+    productId: selectedOrder.productId,
+    productName: selectedOrder.productName,
+    customerName: selectedOrder.customerName,
+    userId: selectedOrder.userId,
+    rating,
+    message: reviewText,
+    image: imageUrl,
+    approved: false,
+    createdAt: Date.now(),
+  });
+
+  toast.success("Review submitted for approval");
+
+  setReviewText("");
+  setRating(5);
+  setReviewImage(null);
+  setReviewOpen(false);
+}}
 >
   Submit Review
 </Button>
