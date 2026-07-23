@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, addDoc, collection } from "firebase/firestore";
 import {
   Heart,
   Home,
@@ -303,7 +303,12 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 function OrdersTab() {
   const { orders, loading } = useUserOrders();
   const { db } = useFirebase();
-  const [now, setNow] = useState(Date.now());
+  const [reviewOpen, setReviewOpen] = useState(false);
+const [selectedOrder, setSelectedOrder] = useState<any>(null);
+const [reviewText, setReviewText] = useState("");
+const [rating, setRating] = useState(5);
+const [reviewImage, setReviewImage] = useState<File | null>(null);
+const [now, setNow] = useState(Date.now());
 
 useEffect(() => {
   const timer = setInterval(() => {
@@ -337,6 +342,19 @@ useEffect(() => {
                 {o.createdAt ? new Date(o.createdAt).toLocaleString() : ""}
               </p>
               <p className="mt-1 font-bold text-gold-gradient">Rs {o.totalAmount.toLocaleString()}</p>
+              {o.orderStatus === "Completed" && (
+  <Button
+    size="sm"
+    variant="gold"
+   onClick={() => {
+  setSelectedOrder(o);
+  setReviewOpen(true);
+      // review dialog open hoga
+    }}
+  >
+    Give Review
+  </Button>
+)}
               {o.orderStatus !== "Cancelled" &&
  o.orderStatus !== "Completed" &&
  o.createdAt &&
@@ -365,8 +383,71 @@ now - o.createdAt <= 5 * 60 * 60 * 1000 && (
             </div>
           </CardContent>
         </Card>
-      ))}
+    
+  
+          ))}
     </div>
+
+    <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Give Review</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          <Input
+            placeholder="Write your review"
+            value={reviewText}
+            onChange={(e) => setReviewText(e.target.value)}
+          />
+
+          <Input
+            type="number"
+            min="1"
+            max="5"
+            value={rating}
+            onChange={(e) => setRating(Number(e.target.value))}
+          />
+
+          <Input
+  type="file"
+  accept="image/*"
+  onChange={(e) => {
+    if (e.target.files?.[0]) {
+      setReviewImage(e.target.files[0]);
+    }
+  }}
+/>
+          
+         <Button
+  variant="gold"
+  onClick={async () => {
+    if (!db || !selectedOrder) return;
+
+    await addDoc(collection(db, "reviews"), {
+      productId: selectedOrder.productId,
+      productName: selectedOrder.productName,
+      customerName: selectedOrder.customerName,
+      userId: selectedOrder.userId,
+      rating,
+      message: reviewText,
+      image: reviewImage ? reviewImage.name : "",
+      approved: false,
+      createdAt: Date.now(),
+    });
+
+    toast.success("Review submitted for approval");
+
+    setReviewText("");
+    setRating(5);
+    setReviewOpen(false);
+  }}
+>
+  Submit Review
+</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
