@@ -303,6 +303,15 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 function OrdersTab() {
   const { orders, loading } = useUserOrders();
   const { db } = useFirebase();
+  const [now, setNow] = useState(Date.now());
+
+useEffect(() => {
+  const timer = setInterval(() => {
+    setNow(Date.now());
+  }, 60000);
+
+  return () => clearInterval(timer);
+}, []);
 
   if (loading) return <LoaderBlock />;
   if (!orders.length) return <EmptyBlock icon={<Package className="size-8" />} title="No orders yet" hint="Your placed orders will appear here." />;
@@ -331,7 +340,7 @@ function OrdersTab() {
               {o.orderStatus !== "Cancelled" &&
  o.orderStatus !== "Completed" &&
  o.createdAt &&
- Date.now() - o.createdAt <= 5 * 60 * 60 * 1000 && (
+now - o.createdAt <= 5 * 60 * 60 * 1000 && (
   <Button
     variant="destructive"
     size="sm"
