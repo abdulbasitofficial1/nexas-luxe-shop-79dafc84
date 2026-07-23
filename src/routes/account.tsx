@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { doc, updateDoc } from "firebase/firestore";
 import {
   Heart,
   Home,
@@ -301,6 +302,8 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 
 function OrdersTab() {
   const { orders, loading } = useUserOrders();
+  const { db } = useFirebase();
+
   if (loading) return <LoaderBlock />;
   if (!orders.length) return <EmptyBlock icon={<Package className="size-8" />} title="No orders yet" hint="Your placed orders will appear here." />;
   return (
@@ -325,6 +328,31 @@ function OrdersTab() {
                 {o.createdAt ? new Date(o.createdAt).toLocaleString() : ""}
               </p>
               <p className="mt-1 font-bold text-gold-gradient">Rs {o.totalAmount.toLocaleString()}</p>
+              {o.orderStatus !== "Cancelled" &&
+ o.orderStatus !== "Completed" &&
+ o.createdAt &&
+ Date.now() - o.createdAt <= 5 * 60 * 60 * 1000 && (
+  <Button
+    variant="destructive"
+    size="sm"
+    onClick={async () => {
+      if (!db) return;
+
+      const reason = prompt("Why do you want to cancel this order?");
+      if (!reason) return;
+
+      await updateDoc(doc(db, "orders", o.id), {
+        orderStatus: "Cancelled",
+        cancelReason: reason,
+        cancelledAt: Date.now(),
+      });
+
+      toast.success("Order cancelled");
+    }}
+  >
+    Cancel Order
+  </Button>
+)}
             </div>
           </CardContent>
         </Card>
