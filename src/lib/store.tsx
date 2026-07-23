@@ -145,12 +145,14 @@ export interface NewOrderInput {
 
 export async function placeOrder(db: Firestore, input: NewOrderInput) {
   const createdAt = Date.now();
+  const trackingId = "NX" + Math.floor(100000 + Math.random() * 900000);
   const subtotal = input.productPrice * input.quantity;
   const deliveryCharge = DELIVERY_CHARGE;
   const codFee = input.paymentMethod === "Cash on Delivery" ? COD_FEE : 0;
   const totalAmount = subtotal + deliveryCharge + codFee;
 
   const order: Omit<Order, "id"> = {
+    trackingId,
     customerName: input.customerName,
     phoneNumber: input.phoneNumber,
     address: input.address,
@@ -204,6 +206,7 @@ export async function placeOrder(db: Firestore, input: NewOrderInput) {
           <tr><td><b>Payment</b></td><td>${input.paymentMethod}</td></tr>
           <tr><td><b>Transaction ID</b></td><td>${input.transactionId || "—"}</td></tr>
           <tr><td><b>Date</b></td><td>${when}</td></tr>
+          <tr><td><b>Tracking ID</b></td><td>${trackingId}</td></tr>
           <tr><td><b>Status</b></td><td>Pending</td></tr>
         </table>`,
     },
