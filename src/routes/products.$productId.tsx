@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { OrderModal } from "@/components/nexas/OrderModal";
 import { useFirebase } from "@/lib/firebase";
 import { useCart } from "@/lib/cart-context";
-import { useProducts } from "@/lib/store";
+import { useProducts, useReviews } from "@/lib/store";
 import { ProductCard } from "@/components/nexas/ProductCard";
 import { DELIVERY_CHARGE, DELIVERY_TIME, type Product } from "@/lib/types";
 import { ChatModal } from "@/components/nexas/ChatModal";
@@ -32,6 +32,11 @@ const [chatOpen, setChatOpen] = useState(false);
 const [activeImg, setActiveImg] = useState(0);
   const [selected, setSelected] = useState<Record<string, string>>({});
   const [optionError, setOptionError] = useState(false);
+  const { reviews } = useReviews(true);
+
+const productReviews = reviews.filter(
+  (r) => r.productId === productId && r.approved
+);
 
   useEffect(() => {
     if (!db) {
@@ -65,12 +70,12 @@ const [activeImg, setActiveImg] = useState(0);
 
   const options = product?.options ?? [];
 
-  const ensureOptions = () => {
-    const missing = options.some((o) => !selected[o.name]);
-    setOptionError(missing);
-    if (missing) toast.error("Please select all product options.");
-    return !missing;
-  };
+ const ensureOptions = () => {
+  const missing = options.some((o) => !selected[o.name]);
+  setOptionError(missing);
+  if (missing) toast.error("Please select all product options.");
+  return !missing;
+};
 
   if (loading) {
     return (
@@ -246,6 +251,46 @@ const [activeImg, setActiveImg] = useState(0);
         </div>
       </div>
 
+      <section className="mt-16">
+  <h2 className="text-2xl font-bold">Customer Reviews</h2>
+
+  {productReviews.length === 0 ? (
+    <p className="mt-4 text-muted-foreground">
+      No reviews yet.
+    </p>
+  ) : (
+    <div className="mt-6 space-y-4">
+      {productReviews.map((r) => (
+        <div
+          key={r.id}
+          className="rounded-xl border p-4"
+        >
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold">
+              {r.customerName}
+            </h3>
+
+            <span>
+              ⭐ {r.rating}/5
+            </span>
+          </div>
+
+          <p className="mt-2">
+            {r.message}
+          </p>
+
+          {r.image && (
+            <img
+              src={r.image}
+              alt="Review"
+              className="mt-3 h-32 w-32 rounded-lg object-cover"
+            />
+          )}
+        </div>
+      ))}
+    </div>
+  )}
+</section>
       <RelatedProducts category={product.category} excludeId={product.id} />
 
       <OrderModal
