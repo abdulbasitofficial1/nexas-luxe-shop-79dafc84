@@ -232,6 +232,9 @@ function OrdersPanel() {
               <div className="mt-3 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
                 <p><span className="text-muted-foreground">Customer:</span> {o.customerName}</p>
                 <p><span className="text-muted-foreground">Phone:</span> {o.phoneNumber}</p>
+                <p>
+  <span className="text-muted-foreground">Tracking ID:</span> {o.trackingId}
+</p>
                 <p className="sm:col-span-2"><span className="text-muted-foreground">Address:</span> {o.address}</p>
                 <p><span className="text-muted-foreground">Payment:</span> {o.paymentMethod}</p>
                 <p><span className="text-muted-foreground">Transaction ID:</span> {o.transactionId || "—"}</p>
