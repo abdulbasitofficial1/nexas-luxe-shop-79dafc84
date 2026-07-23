@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 const navLinks = [
   { to: "/", label: "Home" },
   { to: "/products", label: "Shop" },
+  { to: "/track-order", label: "Track Order" },
 ];
 
 export function Navbar() {
