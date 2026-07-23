@@ -50,16 +50,20 @@ export function useReviews(approvedOnly = true) {
 }
 
 export interface NewReviewInput {
+  productId: string;
   customerName: string;
   rating: number;
   message: string;
+  image?: string;
 }
 
-export async function submitReview(db: Firestore, input: NewReviewInput) {
+  export async function submitReview(db: Firestore, input: NewReviewInput) {
   await addDoc(collection(db, "reviews"), {
+    productId: input.productId,
     customerName: input.customerName,
     rating: input.rating,
     message: input.message,
+    image: input.image ?? "",
     approved: false,
     createdAt: Date.now(),
   });
