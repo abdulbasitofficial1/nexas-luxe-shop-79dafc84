@@ -56,7 +56,7 @@ import {
 } from "@/lib/store";
 import { ORDER_STATUSES, type OrderStatus, type Product } from "@/lib/types";
 import { useChats, sendMessage } from "@/lib/store";
-import { updateDoc, doc } from "firebase/firestore";
+import { updateDoc, doc, deleteDoc } from "firebase/firestore";
 
 export const Route = createFileRoute("/admin")({
   component: Admin,
@@ -291,6 +291,23 @@ function OrdersPanel() {
                     </>
                   )}
                 </Button>
+                <Button
+  size="sm"
+  variant="destructive"
+  onClick={async () => {
+    if (!db) return;
+
+    const confirmDelete = confirm("Delete this order permanently?");
+    if (!confirmDelete) return;
+
+    await deleteDoc(doc(db, "orders", o.id));
+
+    toast.success("Order deleted");
+  }}
+>
+  <Trash2 className="size-4" />
+  Delete Order
+</Button>
                 
               
                             </div>
