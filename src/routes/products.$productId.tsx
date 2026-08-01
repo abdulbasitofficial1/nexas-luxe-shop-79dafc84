@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { OrderModal } from "@/components/nexas/OrderModal";
 import { useFirebase } from "@/lib/firebase";
 import { useCart } from "@/lib/cart-context";
+import { useOptionalEventEngine } from "@/lib/event-context";
+import { EventPrice } from "@/components/nexas/event/EventPrice";
 import { useProducts, useReviews } from "@/lib/store";
 import { ProductCard } from "@/components/nexas/ProductCard";
 import { DELIVERY_CHARGE, DELIVERY_TIME, type Product } from "@/lib/types";
@@ -24,6 +26,7 @@ function ProductDetails() {
   const { productId } = useParams({ from: "/products/$productId" });
   const { db, ready } = useFirebase();
   const { addItem } = useCart();
+  const engine = useOptionalEventEngine();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
  const [qty, setQty] = useState(1);
@@ -153,9 +156,9 @@ const productReviews = reviews.filter(
             {product.category}
           </span>
           <h1 className="mt-4 font-display text-3xl font-bold sm:text-4xl">{product.name}</h1>
-          <p className="mt-4 text-3xl font-bold text-gold-gradient">
-            Rs {product.price.toLocaleString()}
-          </p>
+          <div className="mt-4">
+            <EventPrice product={product} size="lg" />
+          </div>
           <p className="mt-6 leading-relaxed text-muted-foreground">{product.description}</p>
 
           {/* Dynamic option selectors */}
@@ -223,7 +226,7 @@ const productReviews = reviews.filter(
               size="lg"
               onClick={() => {
                 if (!ensureOptions()) return;
-                addItem(product, qty);
+                addItem(effectiveProduct, qty);
                 toast.success(`${product.name} added to cart`);
               }}
             >
@@ -294,7 +297,7 @@ const productReviews = reviews.filter(
       <RelatedProducts category={product.category} excludeId={product.id} />
 
       <OrderModal
-  product={product}
+  product={effectiveProduct}
   open={orderOpen}
   onOpenChange={setOrderOpen}
   initialOptions={selected}
