@@ -57,6 +57,8 @@ import {
 import { ORDER_STATUSES, type OrderStatus, type Product } from "@/lib/types";
 import { useChats, sendMessage } from "@/lib/store";
 import { updateDoc, doc, deleteDoc } from "firebase/firestore";
+import { Upload, FileSpreadsheet } from "lucide-react";
+import { useState, useRef } from "react";
 
 export const Route = createFileRoute("/admin/")({
   component: Admin,
@@ -351,6 +353,7 @@ function ProductsPanel() {
   const { products, loading } = useProducts();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const openNew = () => {
     setEditing(null);
@@ -368,6 +371,20 @@ function ProductsPanel() {
         <Button variant="gold" onClick={openNew}>
           <Plus className="size-4" /> Add Product
         </Button>
+        <Button
+  variant="outline"
+  onClick={() => fileInputRef.current?.click()}
+>
+  <Upload className="w-4 h-4 mr-2" />
+  Import from Markaz
+</Button>
+
+<input
+  type="file"
+  ref={fileInputRef}
+  accept=".csv"
+  className="hidden"
+/>
       </div>
 
       {loading ? (
