@@ -14,6 +14,10 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { FirebaseProvider } from "@/lib/firebase";
 import { CartProvider } from "@/lib/cart-context";
 import { UIProvider } from "@/lib/ui-context";
+import { EventProvider } from "@/lib/event-context";
+import { EventPreviewBar } from "@/components/nexas/event/EventPreviewBar";
+import { FloatingCountdown } from "@/components/nexas/event/FloatingCountdown";
+import { SaleLaunchOverlay } from "@/components/nexas/event/SaleLaunchOverlay";
 import { Navbar } from "@/components/nexas/Navbar";
 import { Footer } from "@/components/nexas/Footer";
 
@@ -145,8 +149,9 @@ function RootComponent() {
       <FirebaseProvider>
         <UIProvider>
           <CartProvider>
+            <EventProvider>
             <div className="flex min-h-screen flex-col">
-              
+              <EventPreviewBar />
               <Navbar />
               <main className="flex-1">
                 {/* Nested routes render here. */}
@@ -154,6 +159,9 @@ function RootComponent() {
               </main>
               <Footer />
             </div>
+            <FloatingCountdown />
+            <SaleLaunchOverlay />
+            </EventProvider>
             <AdminLoginModal />
             <Toaster position="top-center" richColors />
           </CartProvider>
