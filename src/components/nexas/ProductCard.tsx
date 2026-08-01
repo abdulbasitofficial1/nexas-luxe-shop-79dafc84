@@ -5,6 +5,8 @@ import { Heart, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { OrderModal } from "./OrderModal";
 import { useCart } from "@/lib/cart-context";
+import { useOptionalEventEngine } from "@/lib/event-context";
+import { EventDiscountBadge, EventPrice } from "./event/EventPrice";
 import { useFirebase } from "@/lib/firebase";
 import { addToWishlist, removeFromWishlist, useWishlist } from "@/lib/auth";
 import { cn } from "@/lib/utils";
@@ -12,11 +14,16 @@ import type { Product } from "@/lib/types";
 
 export function ProductCard({ product }: { product: Product }) {
   const { addItem } = useCart();
+  const engine = useOptionalEventEngine();
   const { db, user } = useFirebase();
   const { items } = useWishlist();
   const [orderOpen, setOrderOpen] = useState(false);
 
   const inWishlist = items.some((i) => i.id === product.id);
+
+  // During a live event the discounted price is what gets carted/ordered.
+  const pricing = engine?.priceFor(product) ?? null;
+  const effectiveProduct: Product = pricing ? { ...product, price: pricing.final } : product;
 
   const toggleWishlist = async () => {
     if (!user || !db) {
@@ -52,6 +59,8 @@ export function ProductCard({ product }: { product: Product }) {
   <div className="absolute left-3 top-12 z-10 rounded-full bg-red-600 px-3 py-1 text-xs font-bold text-white shadow-lg">
     🔥 SALE
   </div>
+
+  <EventDiscountBadge product={product} />
 
   <img
     src={product.image}
@@ -92,9 +101,9 @@ export function ProductCard({ product }: { product: Product }) {
             </button>
           </div>
           <p className="line-clamp-2 text-sm text-muted-foreground">{product.description}</p>
-          <p className="mt-auto text-xl font-bold text-gold-gradient">
-            Rs {product.price.toLocaleString()}
-          </p>
+          <div className="mt-auto">
+            <EventPrice product={product} />
+          </div>
 
           <div className="flex gap-2">
             <Button
@@ -102,7 +111,7 @@ export function ProductCard({ product }: { product: Product }) {
               size="sm"
               className="flex-1"
               onClick={() => {
-                addItem(product);
+                addItem(effectiveProduct);
                 toast.success(`${product.name} added to cart`);
               }}
             >
@@ -116,7 +125,7 @@ export function ProductCard({ product }: { product: Product }) {
         </div>
       </div>
 
-      <OrderModal product={product} open={orderOpen} onOpenChange={setOrderOpen} />
+      <OrderModal product={effectiveProduct} open={orderOpen} onOpenChange={setOrderOpen} />
     </>
   );
 }

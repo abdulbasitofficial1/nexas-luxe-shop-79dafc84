@@ -37,6 +37,7 @@ export type OrderStatus =
 
 export interface Order {
   id: string;
+  trackingId?: string;
   customerName: string;
   phoneNumber: string;
   address: string;
@@ -97,13 +98,15 @@ export interface CartItem extends Product {
 
 export interface Review {
   id: string;
-  productId: string;
-  orderId: string;
-  userId: string;
+  productId?: string;
+  productName?: string;
+  orderId?: string;
+  userId?: string;
   customerName: string;
   rating: number;
   message: string;
   images?: string[];
+  image?: string;
   approved: boolean;
   createdAt?: number;
 }
