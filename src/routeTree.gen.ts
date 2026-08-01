@@ -16,6 +16,7 @@ import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductsIndexRouteImport } from './routes/products.index'
 import { Route as ProductsProductIdRouteImport } from './routes/products.$productId'
+import { Route as AdminEventsRouteImport } from './routes/admin.events'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -52,22 +53,29 @@ const ProductsProductIdRoute = ProductsProductIdRouteImport.update({
   path: '/products/$productId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminEventsRoute = AdminEventsRouteImport.update({
+  id: '/events',
+  path: '/events',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/cart': typeof CartRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/admin/events': typeof AdminEventsRoute
   '/products/$productId': typeof ProductsProductIdRoute
   '/products/': typeof ProductsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/cart': typeof CartRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/admin/events': typeof AdminEventsRoute
   '/products/$productId': typeof ProductsProductIdRoute
   '/products': typeof ProductsIndexRoute
 }
@@ -75,9 +83,10 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/cart': typeof CartRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/admin/events': typeof AdminEventsRoute
   '/products/$productId': typeof ProductsProductIdRoute
   '/products/': typeof ProductsIndexRoute
 }
@@ -89,6 +98,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/cart'
     | '/sitemap.xml'
+    | '/admin/events'
     | '/products/$productId'
     | '/products/'
   fileRoutesByTo: FileRoutesByTo
@@ -98,6 +108,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/cart'
     | '/sitemap.xml'
+    | '/admin/events'
     | '/products/$productId'
     | '/products'
   id:
@@ -107,6 +118,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/cart'
     | '/sitemap.xml'
+    | '/admin/events'
     | '/products/$productId'
     | '/products/'
   fileRoutesById: FileRoutesById
@@ -114,7 +126,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountRoute: typeof AccountRoute
-  AdminRoute: typeof AdminRoute
+  AdminRoute: typeof AdminRouteWithChildren
   CartRoute: typeof CartRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ProductsProductIdRoute: typeof ProductsProductIdRoute
@@ -172,13 +184,30 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductsProductIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/events': {
+      id: '/admin/events'
+      path: '/events'
+      fullPath: '/admin/events'
+      preLoaderRoute: typeof AdminEventsRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
+
+interface AdminRouteChildren {
+  AdminEventsRoute: typeof AdminEventsRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminEventsRoute: AdminEventsRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountRoute: AccountRoute,
-  AdminRoute: AdminRoute,
+  AdminRoute: AdminRouteWithChildren,
   CartRoute: CartRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ProductsProductIdRoute: ProductsProductIdRoute,

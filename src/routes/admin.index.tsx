@@ -1,8 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { signOut } from "firebase/auth";
 import { toast } from "sonner";
-import { CheckCircle2, Loader2, LogOut, Pencil, Plus, ShieldAlert, Star, Trash2, XCircle } from "lucide-react";
+import { CheckCircle2, Loader2, LogOut, Pencil, Plus, ShieldAlert, Sparkles, Star, Trash2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -58,7 +58,7 @@ import { ORDER_STATUSES, type OrderStatus, type Product } from "@/lib/types";
 import { useChats, sendMessage } from "@/lib/store";
 import { updateDoc, doc, deleteDoc } from "firebase/firestore";
 
-export const Route = createFileRoute("/admin")({
+export const Route = createFileRoute("/admin/")({
   component: Admin,
 });
 
@@ -98,6 +98,12 @@ function Admin() {
           </h1>
           <p className="text-sm text-muted-foreground">{user.email}</p>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+        <Button asChild variant="gold">
+          <Link to="/admin/events">
+            <Sparkles className="size-4" /> Smart Event Engine
+          </Link>
+        </Button>
         <Button
           variant="goldOutline"
           onClick={async () => {
@@ -107,6 +113,7 @@ function Admin() {
         >
           <LogOut className="size-4" /> Logout
         </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="orders" className="mt-8">
