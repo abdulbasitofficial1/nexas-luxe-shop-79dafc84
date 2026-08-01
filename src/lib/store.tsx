@@ -50,7 +50,7 @@ export function useReviews(approvedOnly = true) {
 }
 
 export interface NewReviewInput {
-  productId: string;
+  productId?: string;
   customerName: string;
   rating: number;
   message: string;
@@ -59,7 +59,7 @@ export interface NewReviewInput {
 
   export async function submitReview(db: Firestore, input: NewReviewInput) {
   await addDoc(collection(db, "reviews"), {
-    productId: input.productId,
+    productId: input.productId ?? "",
     customerName: input.customerName,
     rating: input.rating,
     message: input.message,
