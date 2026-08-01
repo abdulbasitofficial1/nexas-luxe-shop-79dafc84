@@ -7,6 +7,9 @@ import { Reviews } from "@/components/nexas/Reviews";
 import { ContactSection } from "@/components/nexas/ContactSection";
 import { Button } from "@/components/ui/button";
 import { useProducts } from "@/lib/store";
+import { useOptionalEventEngine } from "@/lib/event-context";
+import { EventHero } from "@/components/nexas/event/EventHero";
+import { getEventPhase } from "@/lib/event-types";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -20,6 +23,12 @@ const features = [
 
 function Index() {
   const { products, loading } = useProducts();
+  const engine = useOptionalEventEngine();
+  const eventForHero =
+    engine?.activeEvent &&
+    ["live", "countdown"].includes(getEventPhase(engine.activeEvent, engine.now))
+      ? engine.activeEvent
+      : null;
 
   const categories = useMemo(() => {
     const map = new Map<string, number>();
@@ -31,6 +40,7 @@ function Index() {
 
   return (
     <>
+      {eventForHero ? <EventHero event={eventForHero} now={engine!.now} /> : null}
       <Hero />
 
       {/* Trust Section */}
