@@ -13,6 +13,13 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isSignedIn(); // tighten to admin claim in production
     }
+    // Scheduled sale events — publicly readable so the storefront can run
+    // countdowns and dynamic pricing; only admins write.
+    match /events/{id} {
+      allow read: if true;
+      allow write: if isSignedIn(); // tighten to admin claim in production
+    }
+
 
     // Public approved reviews (client filters approved==true).
     match /reviews/{id} {
