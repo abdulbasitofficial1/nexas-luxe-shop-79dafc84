@@ -102,6 +102,12 @@ const productReviews = reviews.filter(
 
   const mainSrc = images[activeImg] ?? images[0] ?? product.image;
 
+  // Live event pricing overrides the base price for cart & direct orders.
+  const eventPricing = engine?.priceFor(product) ?? null;
+  const effectiveProduct: Product = eventPricing
+    ? { ...product, price: eventPricing.final }
+    : product;
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <Button asChild variant="ghost" size="sm" className="mb-6 text-muted-foreground">
