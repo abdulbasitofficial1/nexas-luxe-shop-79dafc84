@@ -18,7 +18,7 @@ export function EventCountdownSection({ event, now }: { event: StoreEvent; now: 
       : `Rs ${event.discount.value.toLocaleString()} OFF`;
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6" aria-label={`${event.name} countdown`}>
+    <section className="mx-auto max-w-5xl px-4 py-6 sm:px-6" aria-label={`${event.name} countdown`}>
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -32,7 +32,7 @@ export function EventCountdownSection({ event, now }: { event: StoreEvent; now: 
           colors={[theme.primary, theme.accent, "#ffffff"]}
         />
 
-        <div className="relative z-10 grid items-center gap-6 p-6 text-center sm:p-9 md:grid-cols-[1.1fr_0.9fr] md:text-left">
+        <div className="relative z-10 grid items-center gap-6 p-6 text-center sm:p-9 md:grid-cols-[1.1fr_0.9fr] md:text-left min-h-[220px]">
           <div className="flex flex-col items-center gap-3 md:items-start">
             <span
               className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em]"
@@ -76,7 +76,7 @@ export function EventCountdownSection({ event, now }: { event: StoreEvent; now: 
             </div>
           </div>
 
-          <div className="flex flex-col items-center gap-4">
+          <div className="flex flex-col items-center gap-2">
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/60">
               {live ? "Ends in" : "Starts in"}
             </p>
