@@ -120,3 +120,4 @@ return (
     <Unit value={t.seconds} label="Sec" size={size} accent={accent} />
   </div>
 );
+}
