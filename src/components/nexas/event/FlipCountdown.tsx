@@ -11,9 +11,23 @@ interface FlipCountdownProps {
 }
 
 const SIZES = {
-  sm: { box: "h-10 w-9 text-lg", label: "text-[9px]", gap: "gap-1" },
-  md: { box: "h-16 w-14 text-3xl", label: "text-[10px]", gap: "gap-2" },
-  lg: { box: "h-24 w-20 text-5xl", label: "text-xs", gap: "gap-3" },
+  sm: {
+    box: "h-8 w-8 text-base",
+    label: "text-[8px]",
+    gap: "gap-1",
+  },
+
+  md: {
+    box: "h-10 w-9 text-lg sm:h-14 sm:w-12 sm:text-2xl",
+    label: "text-[8px] sm:text-[10px]",
+    gap: "gap-1 sm:gap-2",
+  },
+
+lg: {
+  box: "h-10 w-9 text-lg sm:h-14 sm:w-12 sm:text-2xl lg:h-20 lg:w-16 lg:text-4xl",
+  label: "text-[8px] sm:text-[9px] lg:text-[10px]",
+  gap: "gap-1 sm:gap-2 lg:gap-2",
+},
 } as const;
 
 function FlipDigit({
@@ -67,7 +81,7 @@ function Unit({
   const s = SIZES[size];
   const padded = String(value).padStart(2, "0");
   return (
-    <div className="flex flex-col items-center gap-1.5">
+    <div className="flex flex-col items-center gap-1">
       <div className={cn("flex", s.gap)}>
         {padded.split("").map((d, i) => (
           <FlipDigit key={i} value={d} sizeClass={s.box} accent={accent} />
@@ -90,20 +104,19 @@ export function FlipCountdown({
   const t = splitDuration(target - now);
   const urgent = t.total > 0 && t.total < 60 * 60 * 1000;
 
-  return (
-    <div
-      className={cn(
-        "flex items-start justify-center gap-3 sm:gap-4",
-        urgent && "animate-pulse",
-        className,
-      )}
-      role="timer"
-      aria-live="off"
-    >
-      <Unit value={t.days} label="Days" size={size} accent={accent} />
-      <Unit value={t.hours} label="Hours" size={size} accent={accent} />
-      <Unit value={t.minutes} label="Mins" size={size} accent={accent} />
-      <Unit value={t.seconds} label="Secs" size={size} accent={accent} />
-    </div>
-  );
-}
+return (
+  <div
+    className={cn(
+      "flex items-start justify-center gap-1 sm:gap-2 lg:gap-3",
+      urgent && "animate-pulse",
+      className,
+    )}
+    role="timer"
+    aria-live="off"
+  >
+    <Unit value={t.days} label="Day" size={size} accent={accent} />
+    <Unit value={t.hours} label="Hr" size={size} accent={accent} />
+    <Unit value={t.minutes} label="Min" size={size} accent={accent} />
+    <Unit value={t.seconds} label="Sec" size={size} accent={accent} />
+  </div>
+);
