@@ -20,6 +20,7 @@ import { FloatingCountdown } from "@/components/nexas/event/FloatingCountdown";
 import { SaleLaunchOverlay } from "@/components/nexas/event/SaleLaunchOverlay";
 import { Navbar } from "@/components/nexas/Navbar";
 import { Footer } from "@/components/nexas/Footer";
+import { BottomNav } from "@/components/nexas/BottomNav";
 
 import { AdminLoginModal } from "@/components/nexas/AdminLoginModal";
 import { Toaster } from "@/components/ui/sonner";
@@ -158,7 +159,9 @@ function RootComponent() {
                 <Outlet />
               </main>
               <Footer />
+              <div className="h-14 md:hidden" />
             </div>
+            <BottomNav />
             <FloatingCountdown />
             <SaleLaunchOverlay />
             </EventProvider>
