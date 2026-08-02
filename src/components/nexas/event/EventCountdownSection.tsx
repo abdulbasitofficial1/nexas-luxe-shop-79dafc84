@@ -32,7 +32,7 @@ export function EventCountdownSection({ event, now }: { event: StoreEvent; now: 
           colors={[theme.primary, theme.accent, "#ffffff"]}
         />
 
-        <div className="relative z-10 grid items-center gap-6 p-6 text-center sm:p-9 md:grid-cols-[1.1fr_0.9fr] md:text-left min-h-[220px]">
+        <div className="relative z-10 grid items-center gap-3 p-4 text-center sm:p-5 md:grid-cols-[1.1fr_0.9fr] md:text-left min-h-[220px]">
           <div className="flex flex-col items-center gap-3 md:items-start">
             <span
               className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em]"
