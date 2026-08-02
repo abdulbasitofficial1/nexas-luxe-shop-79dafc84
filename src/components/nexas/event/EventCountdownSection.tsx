@@ -80,7 +80,7 @@ export function EventCountdownSection({ event, now }: { event: StoreEvent; now: 
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/60">
               {live ? "Ends in" : "Starts in"}
             </p>
-            <FlipCountdown target={target} now={now} accent={theme.accent} size="lg" />
+            <FlipCountdown target={target} now={now} accent={theme.accent} size="md" />
             <Link
               to="/products"
               className="inline-flex items-center justify-center rounded-xl px-7 py-3 text-sm font-semibold uppercase tracking-widest shadow-2xl transition-transform duration-200 hover:scale-105"
