@@ -106,11 +106,11 @@ export function FlipCountdown({
 
 return (
   <div
-    className={cn(
-      "flex items-start justify-center gap-1 sm:gap-2 lg:gap-3",
-      urgent && "animate-pulse",
-      className,
-    )}
+   className={cn(
+  "mx-auto flex w-fit items-center justify-center gap-1 sm:gap-2 lg:gap-3",
+  urgent && "animate-pulse",
+  className,
+)}
     role="timer"
     aria-live="off"
   >
