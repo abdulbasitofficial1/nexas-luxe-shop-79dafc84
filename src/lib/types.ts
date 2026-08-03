@@ -24,8 +24,16 @@ export interface Product {
   // Dynamic Options
   options?: ProductOption[];
 
+  // Optional catalog metadata (used by bulk CSV imports)
+  sku?: string;
+  shortDescription?: string;
+  salePrice?: number;
+  stock?: number;
+  tags?: string[];
+
   createdAt?: number;
 }
+
 
 export type OrderStatus =
   | "Pending"
