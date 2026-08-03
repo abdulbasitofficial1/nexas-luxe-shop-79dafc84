@@ -2,7 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { signOut } from "firebase/auth";
 import { toast } from "sonner";
-import { CheckCircle2, Loader2, LogOut, Pencil, Plus, ShieldAlert, Sparkles, Star, Trash2, XCircle } from "lucide-react";
+import { CheckCircle2, Loader2, LogOut, Pencil, Plus, ShieldAlert, Sparkles, Star, Trash2, Upload, XCircle } from "lucide-react";
+import { ImportProductsDialog } from "@/components/nexas/admin/ImportProductsDialog";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
