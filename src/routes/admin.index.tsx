@@ -350,8 +350,17 @@ function ProductsPanel() {
   const { db } = useFirebase();
   const { products, loading } = useProducts();
   const [open, setOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
 
+  /** Existing categories from Firebase products (used by the import dialog). */
+  const categories = useMemo(
+    () =>
+      Array.from(
+        new Set(products.map((p) => (p.category ?? "").trim()).filter(Boolean)),
+      ).sort((a, b) => a.localeCompare(b)),
+    [products],
+  );
 
   const openNew = () => {
     setEditing(null);
@@ -364,13 +373,18 @@ function ProductsPanel() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-sm text-muted-foreground">{products.length} product(s)</span>
-        <Button variant="gold" onClick={openNew}>
-          <Plus className="size-4" /> Add Product
-        </Button>
-      
+        <div className="flex flex-wrap gap-2">
+          <Button variant="goldOutline" onClick={() => setImportOpen(true)}>
+            <Upload className="size-4" /> Import from Markaz
+          </Button>
+          <Button variant="gold" onClick={openNew}>
+            <Plus className="size-4" /> Add Product
+          </Button>
+        </div>
       </div>
+
 
       {loading ? (
         <div className="flex justify-center py-16">
