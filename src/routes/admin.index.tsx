@@ -456,6 +456,12 @@ function ProductsPanel() {
       )}
 
       <ProductFormDialog open={open} onOpenChange={setOpen} editing={editing} />
+      <ImportProductsDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        categories={categories}
+      />
+
     </div>
   );
 }
