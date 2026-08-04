@@ -303,17 +303,34 @@ export function mapRows(
     parents.set(key, product);
   }
 
-  // Fold variation rows into their parent product's options.
+  // Fold variation rows into their parent product's options (and images:
+  // some exports only attach photos to the variation rows).
   for (const row of variations) {
     const parentRef = col(row, "Parent", "parent_sku").replace(/^id:/i, "").trim();
     const parent =
-      parents.get(parentRef) ?? parents.get(parentRef.toLowerCase()) ?? undefined;
+      parents.get(parentRef) ??
+      parents.get(parentRef.toLowerCase()) ??
+      // Some exports reference the parent by name instead of SKU.
+      parents.get(col(row, "Name", "post_title").toLowerCase()) ??
+      undefined;
     if (!parent) {
       skipped++;
       continue;
     }
     mergeOptions(parent.options, readAttributes(row));
+
+    const varImages = splitImages(col(row, "Images", "Image", "Image URL", "images"));
+    for (const img of varImages) {
+      if (!parent.images.includes(img)) parent.images.push(img);
+    }
+    if (!parent.image && parent.images.length) parent.image = parent.images[0];
   }
+
+  // Never drop a product because its images failed to parse — just report it.
+  for (const p of parents.values()) {
+    if (!p.image) errors.push(`"${p.name}" has no usable image URL in the CSV.`);
+  }
+
 
   if (parseErrorCount) {
     errors.push(`${parseErrorCount} malformed row(s) in the CSV were ignored.`);
