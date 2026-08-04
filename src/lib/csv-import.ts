@@ -101,14 +101,71 @@ function splitList(value: string): string[] {
     .filter(Boolean);
 }
 
-/** Images cells contain full URLs which may themselves contain commas in query strings. */
-function splitImages(value: string): string[] {
-  if (!value) return [];
-  return value
-    .split(/,(?=\s*https?:\/\/)/)
-    .map((v) => v.trim())
-    .filter((v) => /^https?:\/\//i.test(v));
+/**
+ * Decode common HTML entities that WooCommerce exports leave inside URLs.
+ */
+function decodeEntities(url: string): string {
+  return url
+    .replace(/&amp;/gi, "&")
+    .replace(/&#0?38;/g, "&")
+    .replace(/&quot;/gi, "")
+    .trim();
 }
+
+/**
+ * Normalise a single image URL.
+ *
+ * Markaz exports wrap every image in a proxy endpoint:
+ *   https://www.markaz.app/api/export/image/<file>?src=<url-encoded CDN url>
+ * The proxy is rate limited and can fail when a grid loads many images at
+ * once, while the encoded `src` target is the stable CDN original — so when a
+ * valid `src` is present we unwrap it and store the direct CDN URL instead.
+ */
+export function normalizeImageUrl(raw: string): string {
+  let url = decodeEntities(raw).replace(/^["'<]+|["'>]+$/g, "").trim();
+  if (!/^https?:\/\//i.test(url)) return "";
+
+  const srcMatch = url.match(/[?&]src=([^&]+)/i);
+  if (srcMatch) {
+    try {
+      const inner = decodeURIComponent(srcMatch[1]);
+      if (/^https?:\/\//i.test(inner)) url = inner;
+    } catch {
+      /* malformed encoding — keep the original proxy URL */
+    }
+  }
+  return url;
+}
+
+/**
+ * Extract every image URL from a WooCommerce `Images` cell.
+ *
+ * Real-world exports separate images with commas, pipes, semicolons or plain
+ * newlines, and each URL itself can contain commas inside its query string.
+ * We therefore split on those separators only when the next token starts a new
+ * URL, and fall back to scanning for `http` occurrences inside a chunk.
+ */
+export function splitImages(value: string): string[] {
+  if (!value) return [];
+
+  const chunks = value
+    .replace(/\r/g, "\n")
+    .split(/[\n|;]+|,(?=\s*(?:&quot;|["'])?\s*https?:\/\/)/i)
+    .map((v) => v.trim())
+    .filter(Boolean);
+
+  const urls: string[] = [];
+  for (const chunk of chunks) {
+    // A chunk may still hold several URLs glued together (no clean separator).
+    const found = chunk.match(/https?:\/\/[^\s"'<>|]+/gi) ?? [];
+    for (const f of found) {
+      const normalized = normalizeImageUrl(f);
+      if (normalized && !urls.includes(normalized)) urls.push(normalized);
+    }
+  }
+  return urls;
+}
+
 
 /** Apply the admin's profit setting to a base price. */
 export function applyProfit(basePrice: number, profit: ProfitSettings): number {
