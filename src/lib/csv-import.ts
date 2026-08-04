@@ -101,14 +101,71 @@ function splitList(value: string): string[] {
     .filter(Boolean);
 }
 
-/** Images cells contain full URLs which may themselves contain commas in query strings. */
-function splitImages(value: string): string[] {
-  if (!value) return [];
-  return value
-    .split(/,(?=\s*https?:\/\/)/)
-    .map((v) => v.trim())
-    .filter((v) => /^https?:\/\//i.test(v));
+/**
+ * Decode common HTML entities that WooCommerce exports leave inside URLs.
+ */
+function decodeEntities(url: string): string {
+  return url
+    .replace(/&amp;/gi, "&")
+    .replace(/&#0?38;/g, "&")
+    .replace(/&quot;/gi, "")
+    .trim();
 }
+
+/**
+ * Normalise a single image URL.
+ *
+ * Markaz exports wrap every image in a proxy endpoint:
+ *   https://www.markaz.app/api/export/image/<file>?src=<url-encoded CDN url>
+ * The proxy is rate limited and can fail when a grid loads many images at
+ * once, while the encoded `src` target is the stable CDN original — so when a
+ * valid `src` is present we unwrap it and store the direct CDN URL instead.
+ */
+export function normalizeImageUrl(raw: string): string {
+  let url = decodeEntities(raw).replace(/^["'<]+|["'>]+$/g, "").trim();
+  if (!/^https?:\/\//i.test(url)) return "";
+
+  const srcMatch = url.match(/[?&]src=([^&]+)/i);
+  if (srcMatch) {
+    try {
+      const inner = decodeURIComponent(srcMatch[1]);
+      if (/^https?:\/\//i.test(inner)) url = inner;
+    } catch {
+      /* malformed encoding — keep the original proxy URL */
+    }
+  }
+  return url;
+}
+
+/**
+ * Extract every image URL from a WooCommerce `Images` cell.
+ *
+ * Real-world exports separate images with commas, pipes, semicolons or plain
+ * newlines, and each URL itself can contain commas inside its query string.
+ * We therefore split on those separators only when the next token starts a new
+ * URL, and fall back to scanning for `http` occurrences inside a chunk.
+ */
+export function splitImages(value: string): string[] {
+  if (!value) return [];
+
+  const chunks = value
+    .replace(/\r/g, "\n")
+    .split(/[\n|;]+|,(?=\s*(?:&quot;|["'])?\s*https?:\/\/)/i)
+    .map((v) => v.trim())
+    .filter(Boolean);
+
+  const urls: string[] = [];
+  for (const chunk of chunks) {
+    // A chunk may still hold several URLs glued together (no clean separator).
+    const found = chunk.match(/https?:\/\/[^\s"'<>|]+/gi) ?? [];
+    for (const f of found) {
+      const normalized = normalizeImageUrl(f);
+      if (normalized && !urls.includes(normalized)) urls.push(normalized);
+    }
+  }
+  return urls;
+}
+
 
 /** Apply the admin's profit setting to a base price. */
 export function applyProfit(basePrice: number, profit: ProfitSettings): number {
@@ -216,7 +273,10 @@ export function mapRows(
     const sku = col(row, "SKU", "sku");
     const basePrice = num(col(row, "Regular price", "regular_price", "Price"));
     const salePriceRaw = num(col(row, "Sale price", "sale_price"));
-    const images = splitImages(col(row, "Images", "Image"));
+    const images = splitImages(
+      col(row, "Images", "Image", "Image URL", "Gallery Images", "Featured Image", "images"),
+    );
+
     const stockRaw = col(row, "Stock", "stock_quantity");
 
     if (basePrice <= 0) {
@@ -243,17 +303,34 @@ export function mapRows(
     parents.set(key, product);
   }
 
-  // Fold variation rows into their parent product's options.
+  // Fold variation rows into their parent product's options (and images:
+  // some exports only attach photos to the variation rows).
   for (const row of variations) {
     const parentRef = col(row, "Parent", "parent_sku").replace(/^id:/i, "").trim();
     const parent =
-      parents.get(parentRef) ?? parents.get(parentRef.toLowerCase()) ?? undefined;
+      parents.get(parentRef) ??
+      parents.get(parentRef.toLowerCase()) ??
+      // Some exports reference the parent by name instead of SKU.
+      parents.get(col(row, "Name", "post_title").toLowerCase()) ??
+      undefined;
     if (!parent) {
       skipped++;
       continue;
     }
     mergeOptions(parent.options, readAttributes(row));
+
+    const varImages = splitImages(col(row, "Images", "Image", "Image URL", "images"));
+    for (const img of varImages) {
+      if (!parent.images.includes(img)) parent.images.push(img);
+    }
+    if (!parent.image && parent.images.length) parent.image = parent.images[0];
   }
+
+  // Never drop a product because its images failed to parse — just report it.
+  for (const p of parents.values()) {
+    if (!p.image) errors.push(`"${p.name}" has no usable image URL in the CSV.`);
+  }
+
 
   if (parseErrorCount) {
     errors.push(`${parseErrorCount} malformed row(s) in the CSV were ignored.`);

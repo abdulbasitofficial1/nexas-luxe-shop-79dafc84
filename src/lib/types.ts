@@ -57,9 +57,12 @@ export interface Order {
   subtotal: number;
   totalAmount: number;
   paymentVerified: boolean;
+  /** Firestore product document id — required for the review system. */
+  productId?: string;
   productName: string;
   productPrice: number;
   productImage?: string;
+
   selectedOptions?: SelectedOption[];
 
   trackingNumber?: string;
@@ -117,7 +120,9 @@ export interface Review {
   image?: string;
   approved: boolean;
   createdAt?: number;
+  updatedAt?: number;
 }
+
 
 export const PAYMENT_METHODS = [
   "EasyPaisa",

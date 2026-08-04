@@ -49,8 +49,10 @@ import {
   useUserProfile,
   useWishlist,
 } from "@/lib/auth";
-import type { Address } from "@/lib/types";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import type { Address, Order } from "@/lib/types";
+import { useMyReviews } from "@/lib/reviews";
+import { ReviewDialog } from "@/components/nexas/reviews/ReviewDialog";
+
 
 export const Route = createFileRoute("/account")({
   head: () => ({
@@ -303,169 +305,127 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 
 function OrdersTab() {
   const { orders, loading } = useUserOrders();
-  const { db, storage } = useFirebase();
+  const { db } = useFirebase();
+  const { reviews: myReviews } = useMyReviews();
   const [reviewOpen, setReviewOpen] = useState(false);
-const [selectedOrder, setSelectedOrder] = useState<any>(null);
-const [reviewText, setReviewText] = useState("");
-const [rating, setRating] = useState(5);
-const [reviewImage, setReviewImage] = useState<File | null>(null);
-const [now, setNow] = useState(Date.now());
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [now, setNow] = useState(Date.now());
 
-useEffect(() => {
-  const timer = setInterval(() => {
-    setNow(Date.now());
-  }, 60000);
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(timer);
+  }, []);
 
-  return () => clearInterval(timer);
-}, []);
+  const reviewForOrder = (orderId: string) =>
+    myReviews.find((r) => r.orderId === orderId) ?? null;
 
   if (loading) return <LoaderBlock />;
-  if (!orders.length) return <EmptyBlock icon={<Package className="size-8" />} title="No orders yet" hint="Your placed orders will appear here." />;
- return (
-  <>
-    <div className="space-y-3">
-      {orders.map((o) => (
-        <Card key={o.id}>
-          <CardContent className="flex flex-col gap-4 p-4 sm:flex-row">
-            {o.productImage ? (
-              <img src={o.productImage} alt={o.productName} className="size-24 rounded-lg object-cover" />
-            ) : (
-              <div className="flex size-24 items-center justify-center rounded-lg bg-secondary/50 text-muted-foreground">
-                <Package className="size-6" />
-              </div>
-            )}
-            <div className="flex flex-1 flex-col gap-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="font-semibold">{o.productName}</h3>
-                <Badge variant={o.orderStatus === "Completed" ? "default" : "secondary"}>{o.orderStatus}</Badge>
-              </div>
-              <p className="text-sm text-muted-foreground">Quantity: {o.quantity}</p>
-              <p className="text-sm text-muted-foreground">
-                {o.createdAt ? new Date(o.createdAt).toLocaleString() : ""}
-              </p>
-              <p className="mt-1 font-bold text-gold-gradient">Rs {o.totalAmount.toLocaleString()}</p>
-              {o.orderStatus === "Completed" && (
-  <Button
-    size="sm"
-    variant="gold"
-   onClick={() => {
-  setSelectedOrder(o);
-  setReviewOpen(true);
-      // review dialog open hoga
-    }}
-  >
-    Give Review
-  </Button>
-)}
-              {o.orderStatus !== "Cancelled" &&
- o.orderStatus !== "Completed" &&
- o.createdAt &&
-now - o.createdAt <= 5 * 60 * 60 * 1000 && (
-  <Button
-    variant="destructive"
-    size="sm"
-    onClick={async () => {
-      if (!db) return;
-
-      const reason = prompt("Why do you want to cancel this order?");
-      if (!reason) return;
-
-      await updateDoc(doc(db, "orders", o.id), {
-        orderStatus: "Cancelled",
-        cancelReason: reason,
-        cancelledAt: Date.now(),
-      });
-
-      toast.success("Order cancelled");
-    }}
-  >
-    Cancel Order
-  </Button>
-)}
-            </div>
-          </CardContent>
-        </Card>
-    
-  
-          ))}
-    </div>
-
-    <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Give Review</DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-3">
-          <Input
-            placeholder="Write your review"
-            value={reviewText}
-            onChange={(e) => setReviewText(e.target.value)}
-          />
-
-          <Input
-            type="number"
-            min="1"
-            max="5"
-            value={rating}
-            onChange={(e) => setRating(Number(e.target.value))}
-          />
-
-          <Input
-  type="file"
-  accept="image/*"
-  onChange={(e) => {
-    if (e.target.files?.[0]) {
-      setReviewImage(e.target.files[0]);
-    }
-  }}
-/>
-          
-         <Button
-  variant="gold"
- onClick={async () => {
-  if (!db || !storage || !selectedOrder) return;
-
-  let imageUrl = "";
-
-  if (reviewImage) {
-    const imageRef = ref(
-      storage,
-      `reviews/${Date.now()}-${reviewImage.name}`
+  if (!orders.length)
+    return (
+      <EmptyBlock
+        icon={<Package className="size-8" />}
+        title="No orders yet"
+        hint="Your placed orders will appear here."
+      />
     );
 
-    await uploadBytes(imageRef, reviewImage);
-    imageUrl = await getDownloadURL(imageRef);
-  }
+  const existing = selectedOrder ? reviewForOrder(selectedOrder.id) : null;
 
-  await addDoc(collection(db, "reviews"), {
-    productId: selectedOrder.productId,
-    productName: selectedOrder.productName,
-    customerName: selectedOrder.customerName,
-    userId: selectedOrder.userId,
-    rating,
-    message: reviewText,
-    image: imageUrl,
-    approved: false,
-    createdAt: Date.now(),
-  });
+  return (
+    <>
+      <div className="space-y-3">
+        {orders.map((o) => {
+          const review = reviewForOrder(o.id);
+          return (
+            <Card key={o.id}>
+              <CardContent className="flex flex-col gap-4 p-4 sm:flex-row">
+                {o.productImage ? (
+                  <img src={o.productImage} alt={o.productName} className="size-24 rounded-lg object-cover" />
+                ) : (
+                  <div className="flex size-24 items-center justify-center rounded-lg bg-secondary/50 text-muted-foreground">
+                    <Package className="size-6" />
+                  </div>
+                )}
+                <div className="flex flex-1 flex-col gap-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="font-semibold">{o.productName}</h3>
+                    <Badge variant={o.orderStatus === "Completed" ? "default" : "secondary"}>
+                      {o.orderStatus}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">Quantity: {o.quantity}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {o.createdAt ? new Date(o.createdAt).toLocaleString() : ""}
+                  </p>
+                  <p className="mt-1 font-bold text-gold-gradient">
+                    Rs {o.totalAmount.toLocaleString()}
+                  </p>
 
-  toast.success("Review submitted for approval");
+                  {o.orderStatus === "Completed" && (
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant={review ? "outline" : "gold"}
+                        onClick={() => {
+                          setSelectedOrder(o);
+                          setReviewOpen(true);
+                        }}
+                      >
+                        {review ? "Edit Your Review" : "Give Review"}
+                      </Button>
+                      {review && (
+                        <span className="text-xs text-muted-foreground">
+                          You rated {review.rating}★
+                        </span>
+                      )}
+                      {!review && !o.productId && (
+                        <span className="text-xs text-muted-foreground">
+                          Older order — reviews unavailable
+                        </span>
+                      )}
+                    </div>
+                  )}
 
-  setReviewText("");
-  setRating(5);
-  setReviewImage(null);
-  setReviewOpen(false);
-}}
->
-  Submit Review
-</Button>
-        </div>
-      </DialogContent>
-       </Dialog>
-  </>
+                  {o.orderStatus !== "Cancelled" &&
+                    o.orderStatus !== "Completed" &&
+                    o.createdAt &&
+                    now - o.createdAt <= 5 * 60 * 60 * 1000 && (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="mt-1 w-fit"
+                        onClick={async () => {
+                          if (!db) return;
+                          const reason = prompt("Why do you want to cancel this order?");
+                          if (!reason) return;
+                          await updateDoc(doc(db, "orders", o.id), {
+                            orderStatus: "Cancelled",
+                            cancelReason: reason,
+                            cancelledAt: Date.now(),
+                          });
+                          toast.success("Order cancelled");
+                        }}
+                      >
+                        Cancel Order
+                      </Button>
+                    )}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      <ReviewDialog
+        order={selectedOrder}
+        existing={existing}
+        open={reviewOpen}
+        onOpenChange={setReviewOpen}
+      />
+    </>
   );
 }
+
 
 function WishlistTab() {
   const { db, user } = useFirebase();

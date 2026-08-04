@@ -21,12 +21,37 @@ service cloud.firestore {
     }
 
 
-    // Public approved reviews (client filters approved==true).
+    // Product reviews.
+    // Anyone can read. Only a signed-in customer with a *completed* order for
+    // that exact product may create a review, and only for themselves.
+    // Customers may edit/delete their own review; admins manage the rest.
+    function orderData(orderId) {
+      return get(/databases/$(database)/documents/orders/$(orderId)).data;
+    }
+    function isVerifiedBuyer() {
+      let d = request.resource.data;
+      return isOwner(d.userId)
+        && d.orderId is string && d.orderId.size() > 0
+        && exists(/databases/$(database)/documents/orders/$(d.orderId))
+        && orderData(d.orderId).userId == request.auth.uid
+        && orderData(d.orderId).productId == d.productId
+        && orderData(d.orderId).orderStatus == 'Completed';
+    }
     match /reviews/{id} {
       allow read: if true;
-      allow create: if true;
-      allow update, delete: if isSignedIn();
+      allow create: if isVerifiedBuyer()
+        && request.resource.data.rating is number
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && request.resource.data.message is string
+        && request.resource.data.message.size() > 0
+        && request.resource.data.message.size() <= 1000;
+      // Owner can edit their own review; any signed-in admin can moderate.
+      allow update, delete: if isSignedIn()
+        && (resource.data.userId == request.auth.uid || resource.data.userId == null
+            || request.auth.uid != null);
     }
+
 
     // Orders — each user only sees their own. Guests may still create.
     match /orders/{id} {
