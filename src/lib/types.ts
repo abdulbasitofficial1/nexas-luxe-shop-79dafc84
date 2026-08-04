@@ -120,7 +120,9 @@ export interface Review {
   image?: string;
   approved: boolean;
   createdAt?: number;
+  updatedAt?: number;
 }
+
 
 export const PAYMENT_METHODS = [
   "EasyPaisa",
