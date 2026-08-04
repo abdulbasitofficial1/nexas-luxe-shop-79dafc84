@@ -139,6 +139,8 @@ export interface NewOrderInput {
   quantity: number;
   paymentMethod: string;
   transactionId: string;
+  /** Firestore product id — persisted so the buyer can review the product later. */
+  productId?: string;
   productName: string;
   productPrice: number;
   productImage?: string;
@@ -168,6 +170,7 @@ export async function placeOrder(db: Firestore, input: NewOrderInput) {
     subtotal,
     totalAmount,
     paymentVerified: false,
+    productId: input.productId ?? "",
     productName: input.productName,
     productPrice: input.productPrice,
     productImage: input.productImage ?? "",
@@ -177,6 +180,7 @@ export async function placeOrder(db: Firestore, input: NewOrderInput) {
     userEmail: input.userEmail ?? "",
     createdAt,
   };
+
   await addDoc(collection(db, "orders"), order);
 
   // Queue an email notification. If the Firebase "Trigger Email" extension is
