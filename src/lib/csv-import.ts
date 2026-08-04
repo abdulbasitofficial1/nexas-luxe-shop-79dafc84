@@ -273,7 +273,10 @@ export function mapRows(
     const sku = col(row, "SKU", "sku");
     const basePrice = num(col(row, "Regular price", "regular_price", "Price"));
     const salePriceRaw = num(col(row, "Sale price", "sale_price"));
-    const images = splitImages(col(row, "Images", "Image"));
+    const images = splitImages(
+      col(row, "Images", "Image", "Image URL", "Gallery Images", "Featured Image", "images"),
+    );
+
     const stockRaw = col(row, "Stock", "stock_quantity");
 
     if (basePrice <= 0) {
