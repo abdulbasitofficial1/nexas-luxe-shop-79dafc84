@@ -37,11 +37,8 @@ const [chatOpen, setChatOpen] = useState(false);
 const [activeImg, setActiveImg] = useState(0);
   const [selected, setSelected] = useState<Record<string, string>>({});
   const [optionError, setOptionError] = useState(false);
-  const { reviews } = useReviews(true);
 
-const productReviews = reviews.filter(
-  (r) => r.productId === productId && r.approved
-);
+
 
   useEffect(() => {
     if (!db) {
