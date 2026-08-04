@@ -749,12 +749,28 @@ function ReviewsPanel() {
   const { db } = useFirebase();
   const { reviews, loading } = useReviews(false);
   const [filter, setFilter] = useState<"All" | "Pending" | "Approved">("All");
+  const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
-    return reviews.filter((r) =>
-      filter === "All" ? true : filter === "Approved" ? r.approved : !r.approved,
-    );
-  }, [reviews, filter]);
+    const q = search.trim().toLowerCase();
+    return reviews
+      .filter((r) => (filter === "All" ? true : filter === "Approved" ? r.approved : !r.approved))
+      .filter((r) =>
+        !q
+          ? true
+          : [r.customerName, r.productName, r.message]
+              .filter(Boolean)
+              .some((v) => String(v).toLowerCase().includes(q)),
+      );
+  }, [reviews, filter, search]);
+
+  const stats = useMemo(() => {
+    const approved = reviews.filter((r) => r.approved);
+    const avg = approved.length
+      ? approved.reduce((s, r) => s + (r.rating || 0), 0) / approved.length
+      : 0;
+    return { total: reviews.length, approved: approved.length, avg };
+  }, [reviews]);
 
   return (
     <div className="space-y-4">
@@ -765,12 +781,22 @@ function ReviewsPanel() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="All">All Reviews</SelectItem>
-            <SelectItem value="Pending">Pending Approval</SelectItem>
-            <SelectItem value="Approved">Approved</SelectItem>
+            <SelectItem value="Pending">Hidden</SelectItem>
+            <SelectItem value="Approved">Visible</SelectItem>
           </SelectContent>
         </Select>
-        <span className="ml-auto text-sm text-muted-foreground">{filtered.length} review(s)</span>
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search product, customer or text..."
+          className="w-full sm:w-72"
+        />
+        <span className="ml-auto text-sm text-muted-foreground">
+          {filtered.length} shown · {stats.approved}/{stats.total} visible · avg{" "}
+          {stats.avg.toFixed(1)}★
+        </span>
       </div>
+
 
       {loading ? (
         <div className="flex justify-center py-16">
