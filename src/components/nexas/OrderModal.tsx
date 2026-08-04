@@ -125,7 +125,9 @@ export function OrderModal({ product, open, onOpenChange, initialOptions }: Orde
         quantity: qty,
         paymentMethod: form.payment,
         transactionId: needsTxn(form.payment) ? form.transactionId.trim() : "",
+        productId: product.id,
         productName: product.name,
+
         productPrice: product.price,
         productImage: product.image,
         selectedOptions: productOptions.map((o) => ({ name: o.name, value: options[o.name] })),
