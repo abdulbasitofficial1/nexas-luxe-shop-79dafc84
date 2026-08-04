@@ -49,8 +49,10 @@ import {
   useUserProfile,
   useWishlist,
 } from "@/lib/auth";
-import type { Address } from "@/lib/types";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import type { Address, Order } from "@/lib/types";
+import { useMyReviews } from "@/lib/reviews";
+import { ReviewDialog } from "@/components/nexas/reviews/ReviewDialog";
+
 
 export const Route = createFileRoute("/account")({
   head: () => ({
