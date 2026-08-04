@@ -260,46 +260,8 @@ const productReviews = reviews.filter(
         </div>
       </div>
 
-      <section className="mt-16">
-  <h2 className="text-2xl font-bold">Customer Reviews</h2>
+      <ReviewsSection productId={product.id} />
 
-  {productReviews.length === 0 ? (
-    <p className="mt-4 text-muted-foreground">
-      No reviews yet.
-    </p>
-  ) : (
-    <div className="mt-6 space-y-4">
-      {productReviews.map((r) => (
-        <div
-          key={r.id}
-          className="rounded-xl border p-4"
-        >
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold">
-              {r.customerName}
-            </h3>
-
-            <span>
-              ⭐ {r.rating}/5
-            </span>
-          </div>
-
-          <p className="mt-2">
-            {r.message}
-          </p>
-
-          {r.image && (
-            <img
-              src={r.image}
-              alt="Review"
-              className="mt-3 h-32 w-32 rounded-lg object-cover"
-            />
-          )}
-        </div>
-      ))}
-    </div>
-  )}
-</section>
       <RelatedProducts category={product.category} excludeId={product.id} />
 
       <OrderModal
