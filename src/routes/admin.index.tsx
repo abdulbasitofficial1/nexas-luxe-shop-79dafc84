@@ -840,17 +840,25 @@ function ReviewsPanel() {
                       : "border-yellow-500/30 bg-yellow-500/15 text-yellow-500"
                   }
                 >
-                  {r.approved ? "Approved" : "Pending"}
+                  {r.approved ? "Visible" : "Hidden"}
                 </Badge>
               </div>
               <p className="mt-3 text-sm text-foreground/90">{r.message}</p>
-              {r.image && (
-  <img
-    src={r.image}
-    alt="Review"
-    className="mt-3 h-32 w-32 rounded-lg border object-cover"
-  />
-)}
+              {reviewImages(r).length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {reviewImages(r).map((src) => (
+                    <a key={src} href={src} target="_blank" rel="noreferrer">
+                      <img
+                        src={src}
+                        alt="Review"
+                        loading="lazy"
+                        className="size-24 rounded-lg border object-cover transition-transform hover:scale-105"
+                      />
+                    </a>
+                  ))}
+                </div>
+              )}
+
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <Button
                   size="sm"
