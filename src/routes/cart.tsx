@@ -197,8 +197,11 @@ function CheckoutModal({
           quantity: item.quantity,
           paymentMethod: form.payment,
           transactionId: txn,
+          productId: item.id,
           productName: item.name,
           productPrice: item.price,
+          productImage: item.image,
+
         });
       }
       toast.success("Order placed successfully! We'll contact you shortly.");
