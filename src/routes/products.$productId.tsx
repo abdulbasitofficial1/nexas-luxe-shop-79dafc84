@@ -10,7 +10,9 @@ import { useFirebase } from "@/lib/firebase";
 import { useCart } from "@/lib/cart-context";
 import { useOptionalEventEngine } from "@/lib/event-context";
 import { EventPrice } from "@/components/nexas/event/EventPrice";
-import { useProducts, useReviews } from "@/lib/store";
+import { useProducts } from "@/lib/store";
+import { ReviewsSection } from "@/components/nexas/reviews/ReviewsSection";
+
 import { ProductCard } from "@/components/nexas/ProductCard";
 import { DELIVERY_CHARGE, DELIVERY_TIME, type Product } from "@/lib/types";
 import { ChatModal } from "@/components/nexas/ChatModal";
