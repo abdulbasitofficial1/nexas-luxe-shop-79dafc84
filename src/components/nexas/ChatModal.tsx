@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { ImagePlus, Loader2, Send, X, Check, CheckCheck } from "lucide-react";
+import { Check, CheckCheck, ImagePlus, Loader2, Send } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -265,7 +265,7 @@ export function ChatModal({
                 variant="gold"
                 size="icon"
                 onClick={() => void submit()}
-                disabled={sending || (!text.trim() && true && !text)}
+                disabled={sending || !text.trim()}
                 aria-label="Send message"
               >
                 {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
@@ -277,6 +277,3 @@ export function ChatModal({
     </Dialog>
   );
 }
-
-/** Small close affordance re-export kept for compatibility. */
-export const ChatCloseIcon = X;
