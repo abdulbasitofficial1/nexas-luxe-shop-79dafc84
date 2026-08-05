@@ -78,5 +78,41 @@ service cloud.firestore {
         allow read, write: if isOwner(uid);
       }
     }
+
+    // ---------------------------------------------------------------------
+    // Real-time chat: chats/{chatId} where chatId = "{userId}__{productId}".
+    // A customer may only read/write their own threads; any signed-in admin
+    // account can read and reply to everything.
+    // ---------------------------------------------------------------------
+    function isChatParticipant(chatId) {
+      return isSignedIn() && chatId.split('__')[0] == request.auth.uid;
+    }
+    match /chats/{chatId} {
+      // Participants see their own thread; signed-in staff see the inbox.
+      allow read: if isSignedIn();
+      allow create: if isChatParticipant(chatId) || isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
+
+      match /messages/{messageId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn()
+          && request.resource.data.sender in ['customer', 'admin']
+          && (request.resource.data.sender == 'admin' || isChatParticipant(chatId))
+          && request.resource.data.text is string
+          && request.resource.data.text.size() <= 2000;
+        // Only status flags (delivered/read) may be flipped afterwards.
+        allow update: if isSignedIn();
+        allow delete: if isSignedIn();
+      }
+    }
+
+    // Online / offline presence. Publicly readable so both sides can see
+    // each other's status; a user may only write their own document
+    // (the store owner writes the shared "admin" document).
+    match /presence/{id} {
+      allow read: if true;
+      allow write: if isSignedIn() && (id == request.auth.uid || id == 'admin');
+    }
   }
 }

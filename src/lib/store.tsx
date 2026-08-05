@@ -4,7 +4,6 @@ import {
   collection,
   deleteDoc,
   doc,
-  getDocs,
   onSnapshot,
   orderBy,
   query,
@@ -221,67 +220,6 @@ export async function placeOrder(db: Firestore, input: NewOrderInput) {
     createdAt: serverTimestamp(),
   });
 }
-// CHAT FUNCTIONS
-
-export interface ChatMessage {
-  id: string;
-  userId: string;
-  sender: "customer" | "admin";
-  message: string;
-  createdAt: number;
-}
-
-export function useChats(userId: string) {
-  const { db, ready } = useFirebase();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!db || !userId) {
-      if (ready) setLoading(false);
-      return;
-    }
-
-    const q = query(
-      collection(db, "chats", userId, "messages"),
-      orderBy("createdAt", "asc")
-    );
-
-    const unsub = onSnapshot(q, (snap) => {
-      setMessages(
-        snap.docs.map((d) => ({
-          id: d.id,
-          ...(d.data() as Omit<ChatMessage, "id">),
-        }))
-      );
-      setLoading(false);
-    });
-
-    return unsub;
-  }, [db, ready, userId]);
-
-  return { messages, loading };
-}
-
-export async function sendMessage(
-  db: Firestore,
-  userId: string,
-  sender: "customer" | "admin",
-  message: string,
-  userName?: string
-) {
-  await addDoc(
-    collection(db, "chats", userId, "messages"),
-    {
-      userId,
-      userName: userName || "Customer",
-      sender,
-      message,
-      createdAt: Date.now(),
-    }
-  );
-}
-
 export async function updateOrderStatus(db: Firestore, id: string, status: OrderStatus) {
   await updateDoc(doc(db, "orders", id), { orderStatus: status });
 }
@@ -315,11 +253,4 @@ export async function updateProduct(db: Firestore, id: string, input: ProductInp
 
 export async function deleteProduct(db: Firestore, id: string) {
   await deleteDoc(doc(db, "products", id));
-}
-export async function getChatUsers(db: Firestore) {
-  const snap = await getDocs(collection(db, "chats"));
-
-  return snap.docs.map((doc) => ({
-    id: doc.id,
-  }));
 }

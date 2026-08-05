@@ -25,13 +25,14 @@ import { useFirebase } from "@/lib/firebase";
 import {
   applyProfit,
   importProducts,
+  mirrorParsedImages,
   parseCsvFile,
   type ImportSummary,
   type ParsedProduct,
   type ProfitType,
 } from "@/lib/csv-import";
 
-type Step = "form" | "confirm" | "importing" | "done";
+type Step = "form" | "confirm" | "uploading" | "importing" | "done";
 
 interface Props {
   open: boolean;
@@ -42,7 +43,7 @@ interface Props {
 
 /** Bulk product import dialog: CSV upload → profit → category → preview → import. */
 export function ImportProductsDialog({ open, onOpenChange, categories }: Props) {
-  const { db } = useFirebase();
+  const { db, storage } = useFirebase();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [step, setStep] = useState<Step>("form");
@@ -56,6 +57,7 @@ export function ImportProductsDialog({ open, onOpenChange, categories }: Props) 
   const [parseWarnings, setParseWarnings] = useState<string[]>([]);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [summary, setSummary] = useState<ImportSummary | null>(null);
+  const [imageProgress, setImageProgress] = useState({ done: 0, total: 0, failed: 0 });
 
   const profit = useMemo(
     () => ({ type: profitType, value: Number.parseFloat(profitValue) || 0 }),
@@ -69,11 +71,12 @@ export function ImportProductsDialog({ open, onOpenChange, categories }: Props) 
     setParseWarnings([]);
     setSummary(null);
     setProgress({ done: 0, total: 0 });
+    setImageProgress({ done: 0, total: 0, failed: 0 });
     if (fileRef.current) fileRef.current.value = "";
   };
 
   const close = (v: boolean) => {
-    if (step === "importing") return; // don't allow closing mid-import
+    if (step === "importing" || step === "uploading") return; // no closing mid-import
     if (!v) reset();
     onOpenChange(v);
   };
@@ -123,10 +126,24 @@ export function ImportProductsDialog({ open, onOpenChange, categories }: Props) 
       toast.error("Database not ready. Please try again.");
       return;
     }
-    setStep("importing");
-    setProgress({ done: 0, total: parsed.length });
     toast.info("Import started");
     try {
+      // 1) Mirror every catalog image into Firebase Storage so the storefront
+      //    never depends on the source CDN.
+      if (storage) {
+        setStep("uploading");
+        setImageProgress({ done: 0, total: 0, failed: 0 });
+        const imageResult = await mirrorParsedImages(storage, parsed, (p) =>
+          setImageProgress({ ...p, done: Math.min(p.done, p.total) }),
+        );
+        if (imageResult.failed) {
+          toast.warning(`${imageResult.failed} image(s) could not be downloaded and were skipped.`);
+        }
+      }
+
+      // 2) Write the products (now pointing at Storage URLs).
+      setStep("importing");
+      setProgress({ done: 0, total: parsed.length });
       const result = await importProducts(db, parsed, category, (done, total) =>
         setProgress({ done, total }),
       );
@@ -311,6 +328,29 @@ export function ImportProductsDialog({ open, onOpenChange, categories }: Props) 
                 <Upload className="size-4" /> Import
               </Button>
             </DialogFooter>
+          </div>
+        )}
+
+        {/* ---------------- Step 3a: image upload ---------------- */}
+        {step === "uploading" && (
+          <div className="space-y-3 py-4">
+            <p className="text-sm">
+              Uploading product images to secure storage
+              {imageProgress.total
+                ? ` — ${imageProgress.done} of ${imageProgress.total}`
+                : "..."}
+            </p>
+            <Progress
+              value={
+                imageProgress.total
+                  ? Math.round((imageProgress.done / imageProgress.total) * 100)
+                  : 0
+              }
+            />
+            <p className="text-xs text-muted-foreground">
+              Images are downloaded and re-hosted so they always load fast.
+              {imageProgress.failed ? ` ${imageProgress.failed} skipped.` : ""}
+            </p>
           </div>
         )}
 

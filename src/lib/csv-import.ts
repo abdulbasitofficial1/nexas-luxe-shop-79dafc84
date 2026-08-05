@@ -13,6 +13,8 @@ import {
   writeBatch,
   type Firestore,
 } from "firebase/firestore";
+import type { FirebaseStorage } from "firebase/storage";
+import { mirrorImages } from "./product-images";
 import type { Product, ProductOption } from "./types";
 
 /** Raw CSV row: WooCommerce exports use human-readable header names. */
@@ -448,4 +450,58 @@ export async function importProducts(
   }
 
   return summary;
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* Image mirroring                                                             */
+/* -------------------------------------------------------------------------- */
+
+export interface MirrorProgress {
+  /** Images processed so far. */
+  done: number;
+  /** Total images that will be processed. */
+  total: number;
+  /** Images that could not be downloaded (the product is still imported). */
+  failed: number;
+}
+
+/** Total number of source images across all parsed products. */
+export function countImages(items: ParsedProduct[]): number {
+  const seen = new Set<string>();
+  for (const item of items) for (const url of item.images) seen.add(url);
+  return seen.size;
+}
+
+/**
+ * Download every CSV image and re-upload it to Firebase Storage, replacing the
+ * parsed product's URLs with permanent Storage download URLs.
+ *
+ * - Products are processed sequentially, images inside a product concurrently.
+ * - A failed image is skipped; the product is always kept.
+ * - Identical source URLs are uploaded once, so updates to existing products
+ *   reuse the already-mirrored file instead of duplicating it.
+ */
+export async function mirrorParsedImages(
+  storage: FirebaseStorage,
+  items: ParsedProduct[],
+  onProgress?: (progress: MirrorProgress) => void,
+): Promise<MirrorProgress> {
+  const total = countImages(items);
+  let done = 0;
+  let failed = 0;
+
+  for (const item of items) {
+    if (!item.images.length) continue;
+    const result = await mirrorImages(storage, item.images, () => {
+      done++;
+      onProgress?.({ done, total, failed });
+    });
+    failed += result.failed;
+    item.images = result.urls;
+    item.image = result.urls[0] ?? "";
+  }
+
+  onProgress?.({ done: total, total, failed });
+  return { done: total, total, failed };
 }
