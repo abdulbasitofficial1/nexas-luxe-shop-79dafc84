@@ -273,6 +273,7 @@ const [activeImg, setActiveImg] = useState(0);
 <ChatModal
   open={chatOpen}
   onOpenChange={setChatOpen}
+  product={product}
 />
     </div>
   );
