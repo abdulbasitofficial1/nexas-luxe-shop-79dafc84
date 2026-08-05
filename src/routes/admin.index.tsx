@@ -57,6 +57,7 @@ import {
 } from "@/lib/store";
 import { ORDER_STATUSES, type OrderStatus, type Product } from "@/lib/types";
 import { ChatsPanel } from "@/components/nexas/admin/ChatsPanel";
+import { useChatThreads, unreadTotal } from "@/lib/chat";
 import { usePresenceHeartbeat, ADMIN_PRESENCE_ID } from "@/lib/presence";
 import { reviewImages } from "@/lib/reviews";
 
@@ -129,7 +130,14 @@ function Admin() {
   <TabsTrigger value="orders">Orders</TabsTrigger>
   <TabsTrigger value="products">Products</TabsTrigger>
   <TabsTrigger value="reviews">Reviews</TabsTrigger>
- <TabsTrigger value="chats">Messages</TabsTrigger>
+ <TabsTrigger value="chats" className="relative">
+    Messages
+    {unreadChats > 0 && (
+      <span className="ml-1.5 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
+        {unreadChats}
+      </span>
+    )}
+  </TabsTrigger>
 </TabsList>
         <TabsContent value="orders" className="mt-6">
           <OrdersPanel />
