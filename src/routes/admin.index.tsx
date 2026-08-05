@@ -53,11 +53,11 @@ import {
   useOrders,
   useProducts,
   useReviews,
-  getChatUsers,
   type ProductInput,
 } from "@/lib/store";
 import { ORDER_STATUSES, type OrderStatus, type Product } from "@/lib/types";
-import { useChats, sendMessage } from "@/lib/store";
+import { ChatsPanel } from "@/components/nexas/admin/ChatsPanel";
+import { usePresenceHeartbeat, ADMIN_PRESENCE_ID } from "@/lib/presence";
 import { reviewImages } from "@/lib/reviews";
 
 import { updateDoc, doc, deleteDoc } from "firebase/firestore";
@@ -137,7 +137,7 @@ function Admin() {
           <ReviewsPanel />
         </TabsContent>
         <TabsContent value="chats" className="mt-6">
-  <ChatPanel />
+  <ChatsPanel />
 </TabsContent>
       
       </Tabs>
@@ -923,92 +923,4 @@ function ReviewsPanel() {
       )}
     </div>
   );
-}
-function ChatPanel() {
-  const { db } = useFirebase();
-
-  const [users, setUsers] = useState<any[]>([]);
-  const [selectedUserId, setSelectedUserId] = useState("");
-
-  const { messages, loading } = useChats(selectedUserId);
-
-  const [text, setText] = useState("");
-
-  useEffect(() => {
-  if (!db) return;
-
-  getChatUsers(db).then((data) => {
-    setUsers(data);
-
-    if (data.length > 0) {
-      setSelectedUserId(data[0].id);
-    }
-  });
-}, [db]);
-
-
-  const handleSend = async () => {
-    if (!db || !text.trim()) return;
-
-    await sendMessage(
-      db,
-      selectedUserId,
-      "admin",
-      text
-    );
-
-    setText("");
-  };
-
-return (
-  <div className="rounded-xl border border-border/60 bg-card p-6">
-    <h2 className="mb-4 text-2xl font-bold">Customer Chats</h2>
-
-    <div className="mb-4">
-  <select
-    className="w-full border rounded p-2"
-    value={selectedUserId}
-    onChange={(e) => setSelectedUserId(e.target.value)}
-  >
-    {users.map((user) => (
-      <option key={user.id} value={user.id}>
-        {user.id}
-      </option>
-    ))}
-  </select>
-</div>
-
-    <div className="max-h-[400px] space-y-3 overflow-y-auto">
-      {loading ? (
-        <p>Loading...</p>
-      ) : (
-        messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`rounded-lg p-3 ${
-              msg.sender === "admin"
-                ? "border border-primary/30 bg-primary/5"
-                : "border"
-            }`}
-          >
-            <p>{msg.sender === "admin" ? "Admin" : "Customer"}</p>
-            <p>{msg.message}</p>
-          </div>
-        ))
-      )}
-    </div>
-
-    <div className="mt-4 flex gap-2">
-      <Input
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="Reply..."
-      />
-
-      <Button onClick={handleSend}>
-        Send
-      </Button>
-    </div>
-  </div>
-);
 }
