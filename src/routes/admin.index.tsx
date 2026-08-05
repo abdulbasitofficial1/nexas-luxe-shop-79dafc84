@@ -69,6 +69,10 @@ export const Route = createFileRoute("/admin/")({
 function Admin() {
   const { auth, user, ready } = useFirebase();
   const { openAdminLogin } = useUI();
+  // Live unread badge + admin online presence for the chat system.
+  const { threads: chatThreads } = useChatThreads();
+  const unreadChats = unreadTotal(chatThreads, "admin");
+  usePresenceHeartbeat(user ? ADMIN_PRESENCE_ID : null, "Nexas Support");
 
   if (!ready) {
     return (
