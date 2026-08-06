@@ -111,10 +111,16 @@ function Admin() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
         <Button asChild variant="gold">
+          <Link to="/admin/profit">
+            <Wallet className="size-4" /> Profit Dashboard
+          </Link>
+        </Button>
+        <Button asChild variant="gold">
           <Link to="/admin/events">
             <Sparkles className="size-4" /> Smart Event Engine
           </Link>
         </Button>
+
         <Button
           variant="goldOutline"
           onClick={async () => {
