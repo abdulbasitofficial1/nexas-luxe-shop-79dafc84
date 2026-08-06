@@ -341,18 +341,125 @@ function OrdersPanel() {
   <Trash2 className="size-4" />
   Delete Order
 </Button>
-                
-              
+                {o.orderStatus === "Completed" && (
+                  <Button size="sm" variant="goldOutline" onClick={() => setProfitOrder(o)}>
+                    <Wallet className="size-4" /> Record Profit
+                  </Button>
+                )}
                             </div>
             
             </div>
           ))}
         </div>
       )}
+
+      <ProfitPromptDialog
+        order={profitOrder}
+        onClose={() => setProfitOrder(null)}
+        completedBy={user?.email ?? "admin"}
+      />
     </div>
     
   );
 }
+
+/** Popup asking the admin how much profit a completed order produced. */
+function ProfitPromptDialog({
+  order,
+  onClose,
+  completedBy,
+}: {
+  order: Order | null;
+  onClose: () => void;
+  completedBy: string;
+}) {
+  const { db } = useFirebase();
+  const [amount, setAmount] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [orderId, setOrderId] = useState<string | null>(null);
+
+  if (order && orderId !== order.id) {
+    setOrderId(order.id);
+    setAmount("");
+  }
+
+  const save = async () => {
+    if (!db || !order) return;
+    const profitAmount = Number(amount);
+    if (!Number.isFinite(profitAmount) || profitAmount < 0 || amount.trim() === "") {
+      toast.error("Enter a valid profit amount.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await saveProfit(db, {
+        orderId: order.id,
+        productId: order.productId,
+        productName: order.productName,
+        productImage: order.productImage,
+        customerName: order.customerName,
+        quantity: order.quantity,
+        salePrice: order.totalAmount ?? order.productPrice * order.quantity,
+        profitAmount,
+        completedBy,
+      });
+      toast.success("Profit saved");
+      onClose();
+    } catch (err) {
+      toast.error(
+        err instanceof Error && err.message.includes("already")
+          ? "Profit already recorded for this order."
+          : "Failed to save profit",
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={!!order} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="font-display text-xl">
+            How much profit did you receive from this order?
+          </DialogTitle>
+        </DialogHeader>
+        {order && (
+          <div className="space-y-4">
+            <div className="rounded-lg border border-border/60 bg-secondary/30 p-3 text-sm">
+              <p className="font-medium">{order.productName}</p>
+              <p className="text-muted-foreground">
+                {order.customerName} · Qty {order.quantity} · Rs{" "}
+                {(order.totalAmount ?? order.productPrice * order.quantity).toLocaleString()}
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="profit-amount">Profit Amount (PKR)</Label>
+              <Input
+                id="profit-amount"
+                type="number"
+                min={0}
+                autoFocus
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="e.g. 450"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="ghost" className="flex-1" onClick={onClose} disabled={saving}>
+                Later
+              </Button>
+              <Button variant="gold" className="flex-1" onClick={save} disabled={saving}>
+                {saving && <Loader2 className="size-4 animate-spin" />} Save
+              </Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 interface ProductFormState {
   name: string;
