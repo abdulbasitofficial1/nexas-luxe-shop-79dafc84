@@ -61,6 +61,19 @@ service cloud.firestore {
       allow update, delete: if isSignedIn(); // tighten to admin claim in production
     }
 
+    // Profit records — one document per completed order (doc id = orderId).
+    // Admin-only: never readable by customers, and never overwritten once set.
+    match /profits/{orderId} {
+      allow read: if isSignedIn(); // tighten to admin claim in production
+      allow create: if isSignedIn()
+        && request.resource.data.profitAmount is number
+        && request.resource.data.profitAmount >= 0
+        && request.resource.data.orderId == orderId;
+      allow update, delete: if false;
+    }
+
+
+
     // Email queue for the Trigger Email extension.
     match /mail/{id} {
       allow create: if true;

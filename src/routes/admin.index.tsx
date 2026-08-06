@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { signOut } from "firebase/auth";
 import { toast } from "sonner";
-import { CheckCircle2, Loader2, LogOut, Pencil, Plus, ShieldAlert, Sparkles, Star, Trash2, Upload, XCircle } from "lucide-react";
+import { CheckCircle2, ImagePlus, Loader2, LogOut, Pencil, Plus, ShieldAlert, Sparkles, Star, Trash2, Upload, Wallet, XCircle } from "lucide-react";
 import { ImportProductsDialog } from "@/components/nexas/admin/ImportProductsDialog";
 
 import { Button } from "@/components/ui/button";
@@ -55,7 +55,9 @@ import {
   useReviews,
   type ProductInput,
 } from "@/lib/store";
-import { ORDER_STATUSES, type OrderStatus, type Product } from "@/lib/types";
+import { ORDER_STATUSES, type Order, type OrderStatus, type Product } from "@/lib/types";
+import { profitExists, saveProfit } from "@/lib/profits";
+import { uploadProductFile, validateImageFile } from "@/lib/product-upload";
 import { ChatsPanel } from "@/components/nexas/admin/ChatsPanel";
 import { useChatThreads, unreadTotal } from "@/lib/chat";
 import { usePresenceHeartbeat, ADMIN_PRESENCE_ID } from "@/lib/presence";
@@ -109,10 +111,16 @@ function Admin() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
         <Button asChild variant="gold">
+          <Link to="/admin/profit">
+            <Wallet className="size-4" /> Profit Dashboard
+          </Link>
+        </Button>
+        <Button asChild variant="gold">
           <Link to="/admin/events">
             <Sparkles className="size-4" /> Smart Event Engine
           </Link>
         </Button>
+
         <Button
           variant="goldOutline"
           onClick={async () => {
@@ -177,10 +185,13 @@ const statusVariant: Record<OrderStatus, string> = {
 };
 
 function OrdersPanel() {
-  const { db } = useFirebase();
+  const { db, user } = useFirebase();
   const { orders, loading } = useOrders();
   const [term, setTerm] = useState("");
   const [filter, setFilter] = useState<"All" | OrderStatus>("All");
+  /** Order awaiting a profit entry after being marked Completed. */
+  const [profitOrder, setProfitOrder] = useState<Order | null>(null);
+
 
   const filtered = useMemo(() => {
     const t = term.toLowerCase().trim();
@@ -275,10 +286,15 @@ function OrdersPanel() {
                     try {
                       await updateOrderStatus(db, o.id, v as OrderStatus);
                       toast.success("Order status updated");
+                      // Ask for the profit once, the first time an order is completed.
+                      if (v === "Completed" && !(await profitExists(db, o.id))) {
+                        setProfitOrder(o);
+                      }
                     } catch {
                       toast.error("Failed to update status");
                     }
                   }}
+
                 >
                   <SelectTrigger className="w-40">
                     <SelectValue />
@@ -331,18 +347,125 @@ function OrdersPanel() {
   <Trash2 className="size-4" />
   Delete Order
 </Button>
-                
-              
+                {o.orderStatus === "Completed" && (
+                  <Button size="sm" variant="goldOutline" onClick={() => setProfitOrder(o)}>
+                    <Wallet className="size-4" /> Record Profit
+                  </Button>
+                )}
                             </div>
             
             </div>
           ))}
         </div>
       )}
+
+      <ProfitPromptDialog
+        order={profitOrder}
+        onClose={() => setProfitOrder(null)}
+        completedBy={user?.email ?? "admin"}
+      />
     </div>
     
   );
 }
+
+/** Popup asking the admin how much profit a completed order produced. */
+function ProfitPromptDialog({
+  order,
+  onClose,
+  completedBy,
+}: {
+  order: Order | null;
+  onClose: () => void;
+  completedBy: string;
+}) {
+  const { db } = useFirebase();
+  const [amount, setAmount] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [orderId, setOrderId] = useState<string | null>(null);
+
+  if (order && orderId !== order.id) {
+    setOrderId(order.id);
+    setAmount("");
+  }
+
+  const save = async () => {
+    if (!db || !order) return;
+    const profitAmount = Number(amount);
+    if (!Number.isFinite(profitAmount) || profitAmount < 0 || amount.trim() === "") {
+      toast.error("Enter a valid profit amount.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await saveProfit(db, {
+        orderId: order.id,
+        productId: order.productId,
+        productName: order.productName,
+        productImage: order.productImage,
+        customerName: order.customerName,
+        quantity: order.quantity,
+        salePrice: order.totalAmount ?? order.productPrice * order.quantity,
+        profitAmount,
+        completedBy,
+      });
+      toast.success("Profit saved");
+      onClose();
+    } catch (err) {
+      toast.error(
+        err instanceof Error && err.message.includes("already")
+          ? "Profit already recorded for this order."
+          : "Failed to save profit",
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={!!order} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="font-display text-xl">
+            How much profit did you receive from this order?
+          </DialogTitle>
+        </DialogHeader>
+        {order && (
+          <div className="space-y-4">
+            <div className="rounded-lg border border-border/60 bg-secondary/30 p-3 text-sm">
+              <p className="font-medium">{order.productName}</p>
+              <p className="text-muted-foreground">
+                {order.customerName} · Qty {order.quantity} · Rs{" "}
+                {(order.totalAmount ?? order.productPrice * order.quantity).toLocaleString()}
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="profit-amount">Profit Amount (PKR)</Label>
+              <Input
+                id="profit-amount"
+                type="number"
+                min={0}
+                autoFocus
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="e.g. 450"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="ghost" className="flex-1" onClick={onClose} disabled={saving}>
+                Later
+              </Button>
+              <Button variant="gold" className="flex-1" onClick={save} disabled={saving}>
+                {saving && <Loader2 className="size-4 animate-spin" />} Save
+              </Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 interface ProductFormState {
   name: string;
@@ -489,10 +612,14 @@ function ProductFormDialog({
   onOpenChange: (o: boolean) => void;
   editing: Product | null;
 }) {
-  const { db } = useFirebase();
+  const { db, storage } = useFirebase();
   const [form, setForm] = useState<ProductFormState>(emptyProduct);
   const [saving, setSaving] = useState(false);
   const [initId, setInitId] = useState<string | null>(null);
+  /** Live gallery-upload progress: file name → 0-100. */
+  const [uploads, setUploads] = useState<{ name: string; percent: number }[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
 
   // Sync form when dialog opens or target changes.
   const targetId = editing?.id ?? "new";
@@ -522,6 +649,48 @@ function ProductFormDialog({
   const addImage = () => setForm((f) => ({ ...f, images: [...f.images, ""] }));
   const removeImage = (i: number) =>
     setForm((f) => ({ ...f, images: f.images.filter((_, idx) => idx !== i) }));
+
+  /**
+   * Upload picked files to Firebase Storage and drop the resulting download
+   * URLs straight into the image fields — the admin never copies a URL.
+   */
+  const handleFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    if (!storage) {
+      toast.error("Storage not connected.");
+      return;
+    }
+    const list = Array.from(files);
+    const valid: File[] = [];
+    for (const file of list) {
+      const err = validateImageFile(file);
+      if (err) toast.error(err);
+      else valid.push(file);
+    }
+    if (!valid.length) return;
+
+    setUploads(valid.map((f) => ({ name: f.name, percent: 0 })));
+    for (let i = 0; i < valid.length; i++) {
+      try {
+        const url = await uploadProductFile(storage, valid[i], (percent) =>
+          setUploads((u) => u.map((row, idx) => (idx === i ? { ...row, percent } : row))),
+        );
+        // Fill the first empty slot, otherwise append.
+        setForm((f) => {
+          const images = [...f.images];
+          const empty = images.findIndex((img) => !img.trim());
+          if (empty >= 0) images[empty] = url;
+          else images.push(url);
+          return { ...f, images };
+        });
+      } catch {
+        toast.error(`Failed to upload ${valid[i].name}`);
+      }
+    }
+    setUploads([]);
+    toast.success(valid.length > 1 ? "Images uploaded" : "Image uploaded");
+  };
+
 
   // ---- Option helpers ----
   const addOption = () =>
@@ -637,15 +806,57 @@ function ProductFormDialog({
 
           {/* Product Images */}
           <div className="space-y-3 rounded-lg border border-border/60 p-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <Label>Product Images</Label>
-              <Button type="button" size="sm" variant="goldOutline" onClick={addImage}>
-                <Plus className="size-4" /> Add Image
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="goldOutline"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploads.length > 0}
+                >
+                  <ImagePlus className="size-4" /> Upload From Gallery
+                </Button>
+                <Button type="button" size="sm" variant="goldOutline" onClick={addImage}>
+                  <Plus className="size-4" /> Add Image
+                </Button>
+              </div>
             </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                void handleFiles(e.target.files);
+                e.target.value = "";
+              }}
+            />
             <p className="text-xs text-muted-foreground">
-              The first image is used as the main thumbnail.
+              Paste an image URL or upload from your device — the first image is used as
+              the main thumbnail.
             </p>
+            {uploads.length > 0 && (
+              <div className="space-y-2">
+                {uploads.map((u) => (
+                  <div key={u.name} className="space-y-1">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span className="line-clamp-1">{u.name}</span>
+                      <span>{u.percent}%</span>
+                    </div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
+                      <div
+                        className="h-full rounded-full bg-primary transition-all"
+                        style={{ width: `${u.percent}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="space-y-3">
               {form.images.map((img, i) => (
                 <div key={i} className="flex items-start gap-2">

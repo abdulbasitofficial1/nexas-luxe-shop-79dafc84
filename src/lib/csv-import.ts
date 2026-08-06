@@ -13,6 +13,8 @@ import {
   writeBatch,
   type Firestore,
 } from "firebase/firestore";
+import type { FirebaseStorage } from "firebase/storage";
+import { mirrorImages } from "./product-images";
 import type { Product, ProductOption } from "./types";
 
 /** Raw CSV row: WooCommerce exports use human-readable header names. */
@@ -485,9 +487,20 @@ export async function mirrorParsedImages(
   items: ParsedProduct[],
   onProgress?: (progress: MirrorProgress) => void,
 ): Promise<MirrorProgress> {
-  return {
-    done: 0,
-    total: 0,
-    failed: 0,
-  };
+  const progress: MirrorProgress = { done: 0, total: countImages(items), failed: 0 };
+  onProgress?.({ ...progress });
+
+  for (const item of items) {
+    if (!item.images.length) continue;
+    const { urls, failed } = await mirrorImages(storage, item.images, () => {
+      progress.done += 1;
+      onProgress?.({ ...progress });
+    });
+    progress.failed += failed;
+    if (urls.length) item.images = urls;
+  }
+
+  onProgress?.({ ...progress });
+  return progress;
 }
+
