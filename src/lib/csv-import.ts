@@ -13,6 +13,8 @@ import {
   writeBatch,
   type Firestore,
 } from "firebase/firestore";
+import type { FirebaseStorage } from "firebase/storage";
+import { mirrorImages } from "./product-images";
 import type { Product, ProductOption } from "./types";
 
 /** Raw CSV row: WooCommerce exports use human-readable header names. */
