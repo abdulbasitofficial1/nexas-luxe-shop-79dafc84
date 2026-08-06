@@ -650,6 +650,48 @@ function ProductFormDialog({
   const removeImage = (i: number) =>
     setForm((f) => ({ ...f, images: f.images.filter((_, idx) => idx !== i) }));
 
+  /**
+   * Upload picked files to Firebase Storage and drop the resulting download
+   * URLs straight into the image fields — the admin never copies a URL.
+   */
+  const handleFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    if (!storage) {
+      toast.error("Storage not connected.");
+      return;
+    }
+    const list = Array.from(files);
+    const valid: File[] = [];
+    for (const file of list) {
+      const err = validateImageFile(file);
+      if (err) toast.error(err);
+      else valid.push(file);
+    }
+    if (!valid.length) return;
+
+    setUploads(valid.map((f) => ({ name: f.name, percent: 0 })));
+    for (let i = 0; i < valid.length; i++) {
+      try {
+        const url = await uploadProductFile(storage, valid[i], (percent) =>
+          setUploads((u) => u.map((row, idx) => (idx === i ? { ...row, percent } : row))),
+        );
+        // Fill the first empty slot, otherwise append.
+        setForm((f) => {
+          const images = [...f.images];
+          const empty = images.findIndex((img) => !img.trim());
+          if (empty >= 0) images[empty] = url;
+          else images.push(url);
+          return { ...f, images };
+        });
+      } catch {
+        toast.error(`Failed to upload ${valid[i].name}`);
+      }
+    }
+    setUploads([]);
+    toast.success(valid.length > 1 ? "Images uploaded" : "Image uploaded");
+  };
+
+
   // ---- Option helpers ----
   const addOption = () =>
     setForm((f) => ({ ...f, options: [...f.options, { name: "", values: [""] }] }));
