@@ -806,15 +806,57 @@ function ProductFormDialog({
 
           {/* Product Images */}
           <div className="space-y-3 rounded-lg border border-border/60 p-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <Label>Product Images</Label>
-              <Button type="button" size="sm" variant="goldOutline" onClick={addImage}>
-                <Plus className="size-4" /> Add Image
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="goldOutline"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploads.length > 0}
+                >
+                  <ImagePlus className="size-4" /> Upload From Gallery
+                </Button>
+                <Button type="button" size="sm" variant="goldOutline" onClick={addImage}>
+                  <Plus className="size-4" /> Add Image
+                </Button>
+              </div>
             </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                void handleFiles(e.target.files);
+                e.target.value = "";
+              }}
+            />
             <p className="text-xs text-muted-foreground">
-              The first image is used as the main thumbnail.
+              Paste an image URL or upload from your device — the first image is used as
+              the main thumbnail.
             </p>
+            {uploads.length > 0 && (
+              <div className="space-y-2">
+                {uploads.map((u) => (
+                  <div key={u.name} className="space-y-1">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span className="line-clamp-1">{u.name}</span>
+                      <span>{u.percent}%</span>
+                    </div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
+                      <div
+                        className="h-full rounded-full bg-primary transition-all"
+                        style={{ width: `${u.percent}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="space-y-3">
               {form.images.map((img, i) => (
                 <div key={i} className="flex items-start gap-2">
