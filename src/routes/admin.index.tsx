@@ -55,7 +55,9 @@ import {
   useReviews,
   type ProductInput,
 } from "@/lib/store";
-import { ORDER_STATUSES, type OrderStatus, type Product } from "@/lib/types";
+import { ORDER_STATUSES, type Order, type OrderStatus, type Product } from "@/lib/types";
+import { profitExists, saveProfit } from "@/lib/profits";
+import { uploadProductFile, validateImageFile } from "@/lib/product-upload";
 import { ChatsPanel } from "@/components/nexas/admin/ChatsPanel";
 import { useChatThreads, unreadTotal } from "@/lib/chat";
 import { usePresenceHeartbeat, ADMIN_PRESENCE_ID } from "@/lib/presence";
