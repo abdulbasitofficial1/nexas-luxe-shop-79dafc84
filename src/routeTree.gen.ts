@@ -16,6 +16,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductsIndexRouteImport } from './routes/products.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as ProductsProductIdRouteImport } from './routes/products.$productId'
+import { Route as AdminProfitRouteImport } from './routes/admin.profit'
 import { Route as AdminEventsRouteImport } from './routes/admin.events'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -53,6 +54,11 @@ const ProductsProductIdRoute = ProductsProductIdRouteImport.update({
   path: '/products/$productId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminProfitRoute = AdminProfitRouteImport.update({
+  id: '/admin/profit',
+  path: '/admin/profit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminEventsRoute = AdminEventsRouteImport.update({
   id: '/admin/events',
   path: '/admin/events',
@@ -65,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/cart': typeof CartRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/events': typeof AdminEventsRoute
+  '/admin/profit': typeof AdminProfitRoute
   '/products/$productId': typeof ProductsProductIdRoute
   '/admin/': typeof AdminIndexRoute
   '/products/': typeof ProductsIndexRoute
@@ -75,6 +82,7 @@ export interface FileRoutesByTo {
   '/cart': typeof CartRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/events': typeof AdminEventsRoute
+  '/admin/profit': typeof AdminProfitRoute
   '/products/$productId': typeof ProductsProductIdRoute
   '/admin': typeof AdminIndexRoute
   '/products': typeof ProductsIndexRoute
@@ -86,6 +94,7 @@ export interface FileRoutesById {
   '/cart': typeof CartRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/events': typeof AdminEventsRoute
+  '/admin/profit': typeof AdminProfitRoute
   '/products/$productId': typeof ProductsProductIdRoute
   '/admin/': typeof AdminIndexRoute
   '/products/': typeof ProductsIndexRoute
@@ -98,6 +107,7 @@ export interface FileRouteTypes {
     | '/cart'
     | '/sitemap.xml'
     | '/admin/events'
+    | '/admin/profit'
     | '/products/$productId'
     | '/admin/'
     | '/products/'
@@ -108,6 +118,7 @@ export interface FileRouteTypes {
     | '/cart'
     | '/sitemap.xml'
     | '/admin/events'
+    | '/admin/profit'
     | '/products/$productId'
     | '/admin'
     | '/products'
@@ -118,6 +129,7 @@ export interface FileRouteTypes {
     | '/cart'
     | '/sitemap.xml'
     | '/admin/events'
+    | '/admin/profit'
     | '/products/$productId'
     | '/admin/'
     | '/products/'
@@ -129,6 +141,7 @@ export interface RootRouteChildren {
   CartRoute: typeof CartRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   AdminEventsRoute: typeof AdminEventsRoute
+  AdminProfitRoute: typeof AdminProfitRoute
   ProductsProductIdRoute: typeof ProductsProductIdRoute
   AdminIndexRoute: typeof AdminIndexRoute
   ProductsIndexRoute: typeof ProductsIndexRoute
@@ -185,6 +198,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductsProductIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/profit': {
+      id: '/admin/profit'
+      path: '/admin/profit'
+      fullPath: '/admin/profit'
+      preLoaderRoute: typeof AdminProfitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/events': {
       id: '/admin/events'
       path: '/admin/events'
@@ -201,6 +221,7 @@ const rootRouteChildren: RootRouteChildren = {
   CartRoute: CartRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   AdminEventsRoute: AdminEventsRoute,
+  AdminProfitRoute: AdminProfitRoute,
   ProductsProductIdRoute: ProductsProductIdRoute,
   AdminIndexRoute: AdminIndexRoute,
   ProductsIndexRoute: ProductsIndexRoute,
@@ -208,13 +229,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

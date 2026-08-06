@@ -177,10 +177,13 @@ const statusVariant: Record<OrderStatus, string> = {
 };
 
 function OrdersPanel() {
-  const { db } = useFirebase();
+  const { db, user } = useFirebase();
   const { orders, loading } = useOrders();
   const [term, setTerm] = useState("");
   const [filter, setFilter] = useState<"All" | OrderStatus>("All");
+  /** Order awaiting a profit entry after being marked Completed. */
+  const [profitOrder, setProfitOrder] = useState<Order | null>(null);
+
 
   const filtered = useMemo(() => {
     const t = term.toLowerCase().trim();
