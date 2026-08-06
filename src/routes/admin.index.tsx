@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { signOut } from "firebase/auth";
 import { toast } from "sonner";
 import { CheckCircle2, ImagePlus, Loader2, LogOut, Pencil, Plus, ShieldAlert, Sparkles, Star, Trash2, Upload, Wallet, XCircle } from "lucide-react";
