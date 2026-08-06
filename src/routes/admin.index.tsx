@@ -280,10 +280,15 @@ function OrdersPanel() {
                     try {
                       await updateOrderStatus(db, o.id, v as OrderStatus);
                       toast.success("Order status updated");
+                      // Ask for the profit once, the first time an order is completed.
+                      if (v === "Completed" && !(await profitExists(db, o.id))) {
+                        setProfitOrder(o);
+                      }
                     } catch {
                       toast.error("Failed to update status");
                     }
                   }}
+
                 >
                   <SelectTrigger className="w-40">
                     <SelectValue />
