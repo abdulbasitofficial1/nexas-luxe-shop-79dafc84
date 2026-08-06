@@ -612,10 +612,14 @@ function ProductFormDialog({
   onOpenChange: (o: boolean) => void;
   editing: Product | null;
 }) {
-  const { db } = useFirebase();
+  const { db, storage } = useFirebase();
   const [form, setForm] = useState<ProductFormState>(emptyProduct);
   const [saving, setSaving] = useState(false);
   const [initId, setInitId] = useState<string | null>(null);
+  /** Live gallery-upload progress: file name → 0-100. */
+  const [uploads, setUploads] = useState<{ name: string; percent: number }[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
 
   // Sync form when dialog opens or target changes.
   const targetId = editing?.id ?? "new";
