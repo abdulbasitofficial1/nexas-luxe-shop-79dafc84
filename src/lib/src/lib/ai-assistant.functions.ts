@@ -1,10 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-import type {
-  AIMessage,
-  AIResponse,
-} from "./ai/types";
+import type { AIResponse } from "./ai/types";
 
 const AIMessageSchema = z.object({
   role: z.enum(["user", "assistant"]),
@@ -12,7 +9,7 @@ const AIMessageSchema = z.object({
 });
 
 const AIRequestSchema = z.object({
-  message: z.string().min(1).max(1000),
+  message: z.string().trim().min(1).max(1000),
   conversation: z.array(AIMessageSchema).max(10).optional(),
   currentProductId: z.string().optional(),
 });
@@ -21,18 +18,23 @@ export const askNexasAI = createServerFn({ method: "POST" })
   .inputValidator(AIRequestSchema)
   .handler(async ({ data }): Promise<AIResponse> => {
     /*
-     * Step 2 foundation only.
+     * Nexas AI server entry point.
      *
-     * The actual free AI provider will be connected in the
-     * next step. Keeping the provider separate prevents the
-     * client from ever receiving an API key.
+     * IMPORTANT:
+     * - No AI provider is called from the browser.
+     * - No API key is exposed to the client.
+     * - The actual free AI provider will be connected
+     *   behind the provider abstraction.
      */
 
+    // Temporary safe response until the free provider
+    // is connected.
     void data;
 
     return {
-      text: "Nexas AI is being prepared. Please try again shortly. 😊",
-      intent: "store_question",
+      text:
+        "Hi! I'm Nexas AI Assistant — mujhe Abdul Basit ne develop kiya hai. 😊",
+      intent: "greeting",
       productIds: [],
       sellerChatRequired: false,
     };
