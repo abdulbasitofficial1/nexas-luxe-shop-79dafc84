@@ -1,13 +1,9 @@
 import type { Product } from "../types";
-import type {
-  AIMessage,
-  AIResponse,
-} from "./types";
+import type { AIMessage, AIResponse } from "./types";
 import { searchProducts } from "./search";
 import {
   createGreetingResponse,
   createProductResponse,
-  createProductQuestionResponse,
   createStoreResponse,
   createUnsupportedResponse,
   createSellerChatResponse,
@@ -42,6 +38,7 @@ function isGreeting(message: string): boolean {
     "aoa",
     "kya haal",
     "kaise ho",
+    "kaisay ho",
     "how are you",
     "good morning",
     "good evening",
@@ -49,8 +46,7 @@ function isGreeting(message: string): boolean {
 
   return greetings.some(
     (greeting) =>
-      text === greeting ||
-      text.startsWith(`${greeting} `)
+      text === greeting || text.startsWith(`${greeting} `)
   );
 }
 
@@ -67,6 +63,8 @@ function isUnsupported(message: string): boolean {
     "news today",
     "play a game",
     "translate this",
+    "coding",
+    "programming",
   ];
 
   return unrelatedPatterns.some((pattern) =>
@@ -81,6 +79,9 @@ function looksLikeProductQuestion(message: string): boolean {
     "product",
     "item",
     "price",
+    "price kya",
+    "kitne ka",
+    "kitnay ka",
     "cost",
     "rate",
     "buy",
@@ -97,19 +98,23 @@ function looksLikeProductQuestion(message: string): boolean {
     "size",
     "budget",
     "sasta",
+    "sasti",
     "cheap",
     "acha",
+    "achi",
     "best",
     "phone",
     "mobile",
     "cover",
     "case",
     "gift",
+    "bag",
+    "shoes",
+    "jewelry",
+    "jewellery",
   ];
 
-  return productWords.some((word) =>
-    text.includes(word)
-  );
+  return productWords.some((word) => text.includes(word));
 }
 
 function looksLikeStoreQuestion(message: string): boolean {
@@ -131,27 +136,26 @@ function looksLikeStoreQuestion(message: string): boolean {
     "seller",
     "nexas",
     "store",
+    "shipping",
   ];
 
-  return storeWords.some((word) =>
-    text.includes(word)
-  );
+  return storeWords.some((word) => text.includes(word));
 }
 
 function extractBudget(message: string): number | undefined {
-  const normalized = normalize(message);
+  const text = normalize(message);
 
   const patterns = [
     /under\s+(\d+(?:\.\d+)?)/i,
     /below\s+(\d+(?:\.\d+)?)/i,
-    /less than\s+(\d+(?:\.\d+)?)/i,
+    /less\s+than\s+(\d+(?:\.\d+)?)/i,
     /(\d+(?:\.\d+)?)\s*(?:rs|pkr|rupees)/i,
     /(\d+(?:\.\d+)?)\s*(?:tak|tk)/i,
-    /(\d+(?:\.\d+)?)\s*(?:ke andar|kay andar)/i,
+    /(\d+(?:\.\d+)?)\s*(?:ke\s+andar|kay\s+andar)/i,
   ];
 
   for (const pattern of patterns) {
-    const match = normalized.match(pattern);
+    const match = text.match(pattern);
 
     if (match?.[1]) {
       const amount = Number(match[1]);
@@ -176,12 +180,15 @@ function extractCategory(message: string): string | undefined {
     "accessories",
     "mobile",
     "phones",
+    "phone",
     "home",
     "kitchen",
     "jewelry",
+    "jewellery",
     "shoes",
     "bags",
     "gifts",
+    "gift",
   ];
 
   return categories.find((category) =>
@@ -245,7 +252,7 @@ export function runNexasAIEngine(
 
   if (looksLikeStoreQuestion(message)) {
     return createStoreResponse(
-      "Main Nexas Store ke products aur store-related information mein help kar sakta hoon. Agar aapke question ka exact answer mere available information mein na hua, main aapko Chat with Seller ka option dunga. 😊"
+      "Main Nexas Store ke products aur store-related information mein help kar sakta hoon. Agar mujhe exact answer na pata ho, aap Chat with Seller kar sakte hain. 😊"
     );
   }
 
