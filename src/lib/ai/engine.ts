@@ -1,5 +1,9 @@
 import type { Product } from "../types";
-import type { AIMessage, AIResponse } from "./types";
+import type {
+  AIMessage,
+  AIResponse,
+} from "./types";
+
 import { searchProducts } from "./search";
 
 import {
@@ -17,9 +21,9 @@ export interface NexasAIEngineRequest {
   currentProductId?: string;
 }
 
-/* ---------------------------------------
-   Text Normalizer
----------------------------------------- */
+// =========================================================
+// TEXT NORMALIZER
+// =========================================================
 
 function normalize(value: string): string {
   return value
@@ -30,11 +34,13 @@ function normalize(value: string): string {
     .trim();
 }
 
-/* ---------------------------------------
-   Greetings
----------------------------------------- */
+// =========================================================
+// GREETINGS
+// =========================================================
 
-function isGreeting(message: string): boolean {
+function isGreeting(
+  message: string,
+): boolean {
   const text = normalize(message);
 
   const greetings = [
@@ -56,15 +62,57 @@ function isGreeting(message: string): boolean {
 
   return greetings.some(
     (greeting) =>
-      text === greeting || text.startsWith(`${greeting} `),
+      text === greeting ||
+      text.startsWith(`${greeting} `),
   );
 }
 
-/* ---------------------------------------
-   Unsupported Questions
----------------------------------------- */
+// =========================================================
+// MORE PRODUCTS
+// =========================================================
 
-function isUnsupported(message: string): boolean {
+function isMoreProductsRequest(
+  message: string,
+): boolean {
+  const text = normalize(message);
+
+  const patterns = [
+    "aur dikhao",
+    "or dikhao",
+    "aur dikhado",
+    "or dikhado",
+    "aur products",
+    "or products",
+    "more products",
+    "show more",
+    "show me more",
+    "more",
+    "next",
+    "next products",
+    "aglay products",
+    "agle products",
+    "baqi products",
+    "baki products",
+    "aur options",
+    "more options",
+    "aur dikha do",
+    "or dikha do",
+  ];
+
+  return patterns.some(
+    (pattern) =>
+      text === pattern ||
+      text.includes(pattern),
+  );
+}
+
+// =========================================================
+// UNSUPPORTED
+// =========================================================
+
+function isUnsupported(
+  message: string,
+): boolean {
   const text = normalize(message);
 
   const unrelatedPatterns = [
@@ -92,16 +140,18 @@ function isUnsupported(message: string): boolean {
     "solve this math",
   ];
 
-  return unrelatedPatterns.some((pattern) =>
-    text.includes(pattern),
+  return unrelatedPatterns.some(
+    (pattern) => text.includes(pattern),
   );
 }
 
-/* ---------------------------------------
-   Product Questions
----------------------------------------- */
+// =========================================================
+// PRODUCT QUESTION
+// =========================================================
 
-function looksLikeProductQuestion(message: string): boolean {
+function looksLikeProductQuestion(
+  message: string,
+): boolean {
   const text = normalize(message);
 
   const productWords = [
@@ -168,14 +218,18 @@ function looksLikeProductQuestion(message: string): boolean {
     "suit",
   ];
 
-  return productWords.some((word) => text.includes(word));
+  return productWords.some(
+    (word) => text.includes(word),
+  );
 }
 
-/* ---------------------------------------
-   Store Questions
----------------------------------------- */
+// =========================================================
+// STORE QUESTIONS
+// =========================================================
 
-function looksLikeStoreQuestion(message: string): boolean {
+function looksLikeStoreQuestion(
+  message: string,
+): boolean {
   const text = normalize(message);
 
   const storeWords = [
@@ -216,16 +270,18 @@ function looksLikeStoreQuestion(message: string): boolean {
     "support",
   ];
 
-  return storeWords.some((word) =>
-    text.includes(word),
+  return storeWords.some(
+    (word) => text.includes(word),
   );
 }
 
-/* ---------------------------------------
-   Budget Extraction
----------------------------------------- */
+// =========================================================
+// BUDGET EXTRACTION
+// =========================================================
 
-function extractBudget(message: string): number | undefined {
+function extractBudget(
+  message: string,
+): number | undefined {
   const text = normalize(message);
 
   const patterns = [
@@ -250,7 +306,10 @@ function extractBudget(message: string): number | undefined {
     if (match?.[1]) {
       const amount = Number(match[1]);
 
-      if (Number.isFinite(amount) && amount > 0) {
+      if (
+        Number.isFinite(amount) &&
+        amount > 0
+      ) {
         return amount;
       }
     }
@@ -259,11 +318,13 @@ function extractBudget(message: string): number | undefined {
   return undefined;
 }
 
-/* ---------------------------------------
-   Category Extraction
----------------------------------------- */
+// =========================================================
+// CATEGORY EXTRACTION
+// =========================================================
 
-function extractCategory(message: string): string | undefined {
+function extractCategory(
+  message: string,
+): string | undefined {
   const text = normalize(message);
 
   const categories = [
@@ -290,16 +351,19 @@ function extractCategory(message: string): string | undefined {
     "gift",
   ];
 
-  return categories.find((category) =>
-    text.includes(category),
+  return categories.find(
+    (category) =>
+      text.includes(category),
   );
 }
 
-/* ---------------------------------------
-   Search Intent
----------------------------------------- */
+// =========================================================
+// SHOULD SEARCH
+// =========================================================
 
-function shouldSearchProducts(message: string): boolean {
+function shouldSearchProducts(
+  message: string,
+): boolean {
   return (
     looksLikeProductQuestion(message) ||
     Boolean(extractBudget(message)) ||
@@ -307,36 +371,203 @@ function shouldSearchProducts(message: string): boolean {
   );
 }
 
-/* ---------------------------------------
-   Main Nexas AI Engine
----------------------------------------- */
+// =========================================================
+// FIND PREVIOUS PRODUCT SEARCH
+// =========================================================
+
+function getPreviousSearchMessage(
+  conversation: AIMessage[],
+): string | undefined {
+  for (
+    let index = conversation.length - 1;
+    index >= 0;
+    index--
+  ) {
+    const message =
+      conversation[index];
+
+    if (message.role === "user") {
+      const content =
+        message.content.trim();
+
+      if (
+        content &&
+        !isMoreProductsRequest(content)
+      ) {
+        return content;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+// =========================================================
+// GET ALREADY SHOWN PRODUCTS
+// =========================================================
+
+function getPreviouslyShownIds(
+  conversation: AIMessage[],
+): string[] {
+  const ids: string[] = [];
+
+  for (const message of conversation) {
+    if (
+      message.role === "assistant" &&
+      Array.isArray(message.productIds)
+    ) {
+      ids.push(
+        ...message.productIds,
+      );
+    }
+  }
+
+  return Array.from(new Set(ids));
+}
+
+// =========================================================
+// MAIN ENGINE
+// =========================================================
 
 export function runNexasAIEngine(
   request: NexasAIEngineRequest,
 ): AIResponse {
-  const message = request.message.trim();
+  const message =
+    request.message.trim();
+
+  const conversation =
+    request.conversation ?? [];
 
   if (!message) {
     return createSellerChatResponse();
   }
 
-  /* Greeting */
-  if (isGreeting(message)) {
-    return createGreetingResponse(message);
+  // =======================================================
+  // MORE PRODUCTS
+  // =======================================================
+
+  if (isMoreProductsRequest(message)) {
+    const previousSearch =
+      getPreviousSearchMessage(
+        conversation,
+      );
+
+    if (!previousSearch) {
+      return createProductResponse(
+        "Pehle mujhe bata dein ke aap kis type ke products dekhna chahte hain. 😊",
+        [],
+      );
+    }
+
+    const budget =
+      extractBudget(previousSearch);
+
+    const category =
+      extractCategory(previousSearch);
+
+    const results = searchProducts(
+      request.products,
+      {
+        text: previousSearch,
+        maxPrice: budget,
+        category,
+      },
+      50,
+    );
+
+    if (results.length === 0) {
+      return createProductResponse(
+        "Sorry, mujhe matching products nahi mil rahe. 😔",
+        [],
+      );
+    }
+
+    const previouslyShownIds =
+      getPreviouslyShownIds(
+        conversation,
+      );
+
+    const remainingResults =
+      results.filter(
+        (result) =>
+          !previouslyShownIds.includes(
+            result.product.id,
+          ),
+      );
+
+    if (remainingResults.length === 0) {
+      return createProductResponse(
+        "😊 Is search ke saare matching products main aapko dikha chuka hoon. Agar aap kisi aur category ya budget mein products chahte hain to mujhe bata dein.",
+        [],
+      );
+    }
+
+    const nextProducts =
+      remainingResults.slice(0, 2);
+
+    const nextIds =
+      nextProducts.map(
+        (result) =>
+          result.product.id,
+      );
+
+    const hasMore =
+      remainingResults.length > 2;
+
+    const productNames =
+      nextProducts
+        .map(
+          (result) =>
+            result.product.name,
+        )
+        .join(", ");
+
+    const moreMessage = hasMore
+      ? " Agar ye bhi pasand na aayein to **“aur dikhao”** likhein, main next products dikha deta hoon. 😊"
+      : " Ye is search ke last matching products hain. 😊";
+
+    return createProductResponse(
+      `Bilkul! Ye rahe aur products: ${productNames}. 😊${moreMessage}`,
+      nextIds,
+      {
+        hasMoreProducts: hasMore,
+        nextProductOffset:
+          previouslyShownIds.length +
+          nextIds.length,
+      },
+    );
   }
 
-  /* Unsupported */
+  // =======================================================
+  // GREETING
+  // =======================================================
+
+  if (isGreeting(message)) {
+    return createGreetingResponse(
+      message,
+    );
+  }
+
+  // =======================================================
+  // UNSUPPORTED
+  // =======================================================
+
   if (isUnsupported(message)) {
     return createUnsupportedResponse();
   }
 
-  /* ---------------------------------------
-     Product Search
-  ---------------------------------------- */
+  // =======================================================
+  // PRODUCT SEARCH
+  // =======================================================
 
-  if (shouldSearchProducts(message)) {
-    const budget = extractBudget(message);
-    const category = extractCategory(message);
+  if (
+    shouldSearchProducts(message)
+  ) {
+    const budget =
+      extractBudget(message);
+
+    const category =
+      extractCategory(message);
 
     const results = searchProducts(
       request.products,
@@ -345,10 +576,9 @@ export function runNexasAIEngine(
         maxPrice: budget,
         category,
       },
-      6,
+      50,
     );
 
-    /* No products found */
     if (results.length === 0) {
       return createProductResponse(
         budget
@@ -358,46 +588,67 @@ export function runNexasAIEngine(
       );
     }
 
-    /* Product IDs */
-    const productIds = results.map(
-      (result) => result.product.id,
-    );
+    // ---------------------------------------------
+    // ONLY FIRST 2 PRODUCTS
+    // ---------------------------------------------
 
-    /* Product names */
-    const productNames = results
-      .slice(0, 3)
-      .map((result) => result.product.name)
-      .join(", ");
+    const firstProducts =
+      results.slice(0, 2);
 
-    /* Budget text */
+    const productIds =
+      firstProducts.map(
+        (result) =>
+          result.product.id,
+      );
+
+    const productNames =
+      firstProducts
+        .map(
+          (result) =>
+            result.product.name,
+        )
+        .join(", ");
+
+    const hasMore =
+      results.length > 2;
+
     const budgetText = budget
       ? ` Rs ${budget.toLocaleString()} ke andar`
       : "";
 
-    /* Category text */
     const categoryText = category
       ? ` ${category}`
       : "";
 
+    const moreText = hasMore
+      ? " Agar ye products pasand na aayein to **“aur dikhao”** likhein, main aur products dikha deta hoon. 😊"
+      : "";
+
     return createProductResponse(
-      `Bilkul! Mujhe${categoryText} mein${budgetText} ye matching products mile: ${productNames}. 😊 Neeche products ki picture aur price bhi dekh sakte hain.`,
+      `Bilkul! Mujhe${categoryText}${budgetText} matching products mile. Pehle main aapko 2 products dikhata hoon: ${productNames}. 😊${moreText}`,
       productIds,
+      {
+        hasMoreProducts: hasMore,
+        nextProductOffset: 2,
+      },
     );
   }
 
-  /* ---------------------------------------
-     Store Questions
-  ---------------------------------------- */
+  // =======================================================
+  // STORE QUESTIONS
+  // =======================================================
 
-  if (looksLikeStoreQuestion(message)) {
+  if (
+    looksLikeStoreQuestion(message)
+  ) {
     return createStoreResponse(
       "Bilkul! Main Nexas Store ke delivery, payment, COD, returns, orders, tracking aur seller-related questions mein help kar sakta hoon. Agar exact information available na hui to aap Chat with Seller se hamari team se directly baat kar sakte hain. 😊",
     );
   }
 
-  /* ---------------------------------------
-     Unknown Question
-  ---------------------------------------- */
+  // =======================================================
+  // UNKNOWN
+  // =======================================================
 
   return createSellerChatResponse();
 }
