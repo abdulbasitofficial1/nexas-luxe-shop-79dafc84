@@ -1,19 +1,10 @@
-```ts
 import type { AIIntent, AIResponse } from "./types";
-
-// =========================================================
-// CONSTANTS
-// =========================================================
 
 const SELLER_CHAT_MESSAGE =
   "Iska exact answer mere paas abhi nahi hai. Aap Chat with Seller se hamari team se directly baat kar sakte hain. 😊";
 
 const UNSUPPORTED_MESSAGE =
   "Sorry, main sirf Nexas Store ke products aur store-related questions mein help kar sakta hoon. 😊";
-
-// =========================================================
-// GREETING
-// =========================================================
 
 export function createGreetingResponse(
   message: string,
@@ -44,10 +35,6 @@ export function createGreetingResponse(
   };
 }
 
-// =========================================================
-// SELLER CHAT
-// =========================================================
-
 export function createSellerChatResponse(): AIResponse {
   return {
     text: SELLER_CHAT_MESSAGE,
@@ -56,10 +43,6 @@ export function createSellerChatResponse(): AIResponse {
     sellerChatRequired: true,
   };
 }
-
-// =========================================================
-// UNSUPPORTED
-// =========================================================
 
 export function createUnsupportedResponse(): AIResponse {
   return {
@@ -70,17 +53,12 @@ export function createUnsupportedResponse(): AIResponse {
   };
 }
 
-// =========================================================
-// PRODUCT RESPONSE
-// =========================================================
-
 export function createProductResponse(
   text: string,
   productIds: string[],
   options?: {
-    totalResults?: number;
-    shownCount?: number;
     hasMoreProducts?: boolean;
+    nextProductOffset?: number;
   },
 ): AIResponse {
   return {
@@ -88,41 +66,12 @@ export function createProductResponse(
     intent: "product_search",
     productIds,
     sellerChatRequired: false,
-
-    totalResults: options?.totalResults,
-    shownCount: options?.shownCount,
-    hasMoreProducts: options?.hasMoreProducts,
+    hasMoreProducts:
+      options?.hasMoreProducts ?? false,
+    nextProductOffset:
+      options?.nextProductOffset ?? 0,
   };
 }
-
-// =========================================================
-// SHOW MORE PRODUCTS
-// =========================================================
-
-export function createShowMoreProductsResponse(
-  text: string,
-  productIds: string[],
-  options?: {
-    totalResults?: number;
-    shownCount?: number;
-    hasMoreProducts?: boolean;
-  },
-): AIResponse {
-  return {
-    text,
-    intent: "show_more_products",
-    productIds,
-    sellerChatRequired: false,
-
-    totalResults: options?.totalResults,
-    shownCount: options?.shownCount,
-    hasMoreProducts: options?.hasMoreProducts,
-  };
-}
-
-// =========================================================
-// STORE QUESTION
-// =========================================================
 
 export function createStoreResponse(
   text: string,
@@ -134,10 +83,6 @@ export function createStoreResponse(
     sellerChatRequired: false,
   };
 }
-
-// =========================================================
-// PRODUCT QUESTION
-// =========================================================
 
 export function createProductQuestionResponse(
   text: string,
@@ -151,22 +96,11 @@ export function createProductQuestionResponse(
   };
 }
 
-// =========================================================
-// NORMALIZE AI RESPONSE
-// =========================================================
-
 export function normalizeAIResponse(
   response: Partial<AIResponse>,
 ): AIResponse {
   const intent: AIIntent =
     response.intent ?? "store_question";
-
-  const productIds = Array.isArray(response.productIds)
-    ? response.productIds.filter(
-        (id): id is string =>
-          typeof id === "string" && id.trim().length > 0,
-      )
-    : [];
 
   return {
     text:
@@ -177,31 +111,30 @@ export function normalizeAIResponse(
 
     intent,
 
-    productIds,
+    productIds: Array.isArray(
+      response.productIds,
+    )
+      ? response.productIds.filter(
+          (id): id is string =>
+            typeof id === "string",
+        )
+      : [],
 
     sellerChatRequired:
       response.sellerChatRequired === true,
 
     clarification:
-      typeof response.clarification === "string" &&
-      response.clarification.trim()
-        ? response.clarification.trim()
-        : undefined,
-
-    totalResults:
-      typeof response.totalResults === "number"
-        ? response.totalResults
-        : undefined,
-
-    shownCount:
-      typeof response.shownCount === "number"
-        ? response.shownCount
+      typeof response.clarification === "string"
+        ? response.clarification
         : undefined,
 
     hasMoreProducts:
-      typeof response.hasMoreProducts === "boolean"
-        ? response.hasMoreProducts
-        : undefined,
+      response.hasMoreProducts === true,
+
+    nextProductOffset:
+      typeof response.nextProductOffset ===
+      "number"
+        ? response.nextProductOffset
+        : 0,
   };
 }
-```
