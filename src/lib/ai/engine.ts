@@ -1,4 +1,3 @@
-```ts
 import type { Product } from "../types";
 import type {
   AIMessage,
@@ -979,4 +978,3 @@ export function runNexasAIEngine(
 
   return createSellerChatResponse();
 }
-```
