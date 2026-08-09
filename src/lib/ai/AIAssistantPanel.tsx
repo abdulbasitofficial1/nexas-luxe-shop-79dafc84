@@ -273,55 +273,80 @@ export function AIAssistantPanel({
             )}
 
             {/* ================= PRODUCT RECOMMENDATIONS ================= */}
-            {!loading &&
-              recommendedProducts.length > 0 && (
-                <div className="space-y-2 pt-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold text-yellow-500">
-                      ✨ Recommended Products
-                    </p>
+{/* Recommended products */}
+{!loading &&
+  lastResponse &&
+  lastResponse.productIds.length > 0 && (
+    <div className="mt-3 space-y-2">
+      <p className="text-xs font-semibold text-yellow-500">
+        ✨ Recommended Products
+      </p>
 
-                    <span className="text-[10px] text-muted-foreground">
-                      {recommendedProducts.length} found
-                    </span>
-                  </div>
+      <div className="grid grid-cols-1 gap-2">
+        {products
+          .filter((product) =>
+            lastResponse.productIds.includes(product.id)
+          )
+          .slice(0, 6)
+          .map((product) => (
+            <div
+              key={product.id}
+              className="
+                flex gap-3 overflow-hidden rounded-xl
+                border border-yellow-500/20
+                bg-black/5 p-2
+                transition-all duration-200
+                hover:border-yellow-500/50
+                hover:shadow-[0_0_15px_rgba(234,179,8,0.12)]
+              "
+            >
+              {/* Product Image */}
+              <img
+                src={product.image}
+                alt={product.name}
+                loading="lazy"
+                className="
+                  size-20 shrink-0 rounded-lg
+                  object-cover
+                  border border-border/50
+                "
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
+              />
 
-                  <div className="grid grid-cols-2 gap-2">
-                    {recommendedProducts.map((product) => (
-                      <div
-                        key={product.id}
-                        className="
-                          group overflow-hidden
-                          rounded-xl
-                          border border-yellow-500/20
-                          bg-black
-                          transition-all duration-300
-                          hover:-translate-y-0.5
-                          hover:border-yellow-500/60
-                          hover:shadow-[0_8px_25px_rgba(234,179,8,0.12)]
-                        "
-                      >
-                        {/* PRODUCT IMAGE */}
-                        <Link
-                          to="/products/$productId"
-                          params={{
-                            productId: product.id,
-                          }}
-                          className="block"
-                        >
-                          <div className="relative overflow-hidden">
-                            <img
-                              src={product.image}
-                              alt={product.name}
-                              loading="lazy"
-                              className="
-                                h-32 w-full
-                                object-cover
-                                transition-transform
-                                duration-500
-                                group-hover:scale-105
-                              "
-                            />
+              {/* Product Info */}
+              <div className="min-w-0 flex-1">
+                <p className="line-clamp-2 text-sm font-semibold">
+                  {product.name}
+                </p>
+
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {product.category}
+                </p>
+
+                <p className="mt-1 text-base font-bold text-yellow-500">
+                  Rs {Number(product.price).toLocaleString()}
+                </p>
+
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="gold"
+                  className="mt-2 h-7 px-3 text-xs"
+                  onClick={() => {
+                    window.location.href =
+                      `/products/${product.id}`;
+                  }}
+                >
+                  View Product
+                </Button>
+              </div>
+            </div>
+          ))}
+      </div>
+    </div>
+  )}
 
                             {/* Category badge */}
                             {product.category && (
