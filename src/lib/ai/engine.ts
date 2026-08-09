@@ -1,3 +1,4 @@
+```ts
 import type { Product } from "../types";
 import type {
   AIMessage,
@@ -233,6 +234,10 @@ function looksLikeStoreQuestion(
   const text = normalize(message);
 
   const storeWords = [
+    // -----------------------------------------------------
+    // Existing store questions
+    // -----------------------------------------------------
+
     "delivery",
     "deliver",
     "delivery kitne",
@@ -268,6 +273,325 @@ function looksLikeStoreQuestion(
     "seven days",
     "contact",
     "support",
+
+    // -----------------------------------------------------
+    // Store information
+    // -----------------------------------------------------
+
+    "store kya hai",
+    "store kis cheez ka hai",
+    "store par kya milta hai",
+    "store mein kya milta hai",
+    "store me kya milta hai",
+    "aap kya sell karte ho",
+    "kya sell karte ho",
+    "kya bechte ho",
+    "kon se products hain",
+    "kaun se products hain",
+    "kis type ke products hain",
+
+    // -----------------------------------------------------
+    // Store location
+    // -----------------------------------------------------
+
+    "store kahan hai",
+    "store kaha hai",
+    "shop kahan hai",
+    "shop kaha hai",
+    "location",
+    "store location",
+    "shop location",
+    "address",
+    "store address",
+    "shop address",
+    "physical store",
+    "physical shop",
+    "physical location",
+    "visit store",
+    "store visit",
+    "shop visit",
+
+    // -----------------------------------------------------
+    // Store timing
+    // -----------------------------------------------------
+
+    "store timing",
+    "shop timing",
+    "store timings",
+    "shop timings",
+    "store kab open",
+    "shop kab open",
+    "store kab band",
+    "shop kab band",
+    "opening time",
+    "closing time",
+    "open kab",
+    "band kab",
+    "kis time open",
+    "kis waqt open",
+    "sunday open",
+    "sunday ko open",
+    "weekend open",
+    "weekend par open",
+
+    // -----------------------------------------------------
+    // Contact / customer support
+    // -----------------------------------------------------
+
+    "contact number",
+    "phone number",
+    "mobile number",
+    "helpline",
+    "customer care",
+    "customer service",
+    "customer support",
+    "support team",
+    "support number",
+    "whatsapp",
+    "whatsapp number",
+    "whatsapp par",
+    "seller se baat",
+    "human agent",
+    "human support",
+    "agent se baat",
+    "representative",
+    "representative se baat",
+    "team se baat",
+
+    // -----------------------------------------------------
+    // Complaints
+    // -----------------------------------------------------
+
+    "complaint",
+    "complain",
+    "shikayat",
+    "issue report",
+    "problem report",
+    "complaint kaise",
+    "complaint kahan",
+    "issue kahan",
+    "problem kahan",
+    "masla",
+    "masla hai",
+    "issue hai",
+    "problem hai",
+
+    // -----------------------------------------------------
+    // Delivery extra questions
+    // -----------------------------------------------------
+
+    "free delivery",
+    "free shipping",
+    "shipping free",
+    "delivery free",
+    "delivery available",
+    "delivery kin cities",
+    "kin cities mein delivery",
+    "kin cities me delivery",
+    "which cities delivery",
+    "remote area",
+    "remote areas",
+    "same day delivery",
+    "urgent delivery",
+    "fast delivery",
+    "delivery late",
+    "delivery late ho",
+    "delivery delay",
+    "delivery delayed",
+    "weekend delivery",
+    "saturday delivery",
+    "sunday delivery",
+    "international delivery",
+    "outside pakistan delivery",
+    "pakistan delivery",
+
+    // -----------------------------------------------------
+    // Payment extra questions
+    // -----------------------------------------------------
+
+    "online payment",
+    "payment kaise",
+    "payment methods",
+    "payment method",
+    "payment options",
+    "bank transfer",
+    "bank payment",
+    "online transfer",
+    "payment safe",
+    "payment secure",
+    "payment fail",
+    "payment failed",
+    "payment confirm",
+    "payment confirmation",
+    "payment pending",
+    "advance payment",
+    "advance dena",
+    "advance payment karni",
+    "cod available",
+    "cash payment",
+
+    // -----------------------------------------------------
+    // Order extra questions
+    // -----------------------------------------------------
+
+    "order place",
+    "order place karna",
+    "order kaise place",
+    "order kaise karun",
+    "order kaise karna",
+    "order confirm",
+    "order confirmation",
+    "order status",
+    "order check",
+    "order check karna",
+    "mera order",
+    "my order",
+    "order nahi aya",
+    "order nahi aaya",
+    "order receive nahi",
+    "order late",
+    "order delay",
+    "order address",
+    "address change",
+    "address update",
+    "order modify",
+    "order change",
+    "tracking number",
+    "tracking id",
+    "track my order",
+
+    // -----------------------------------------------------
+    // Return / exchange / refund extra questions
+    // -----------------------------------------------------
+
+    "return policy",
+    "return kaise",
+    "product return",
+    "return karna",
+    "return kitne din",
+    "return period",
+    "exchange policy",
+    "exchange kaise",
+    "exchange karna",
+    "exchange kitne din",
+    "wrong product",
+    "galat product",
+    "damaged product",
+    "damage product",
+    "broken product",
+    "defective product",
+    "refund policy",
+    "refund kaise",
+    "refund kab",
+    "refund kitne din",
+    "refund method",
+    "paise wapis",
+    "money back",
+
+    // -----------------------------------------------------
+    // Trust / security
+    // -----------------------------------------------------
+
+    "trusted store",
+    "trustworthy store",
+    "store trusted",
+    "genuine store",
+    "real store",
+    "fake store",
+    "original store",
+    "safe store",
+    "store safe",
+    "payment secure",
+    "payment safe",
+    "data safe",
+    "information safe",
+    "personal information",
+    "personal data",
+    "privacy",
+    "privacy policy",
+    "data privacy",
+    "secure payment",
+    "security",
+
+    // -----------------------------------------------------
+    // Offers / discounts
+    // -----------------------------------------------------
+
+    "discount",
+    "discounts",
+    "discount available",
+    "discount hai",
+    "offer",
+    "offers",
+    "offer hai",
+    "special offer",
+    "special offers",
+    "sale",
+    "sale lagi",
+    "sale chal rahi",
+    "promotion",
+    "promotions",
+    "promo",
+    "promo code",
+    "coupon",
+    "coupon code",
+    "discount code",
+    "free shipping offer",
+    "new customer discount",
+    "first order discount",
+    "eid offer",
+    "special sale",
+
+    // -----------------------------------------------------
+    // Wholesale / bulk / business
+    // -----------------------------------------------------
+
+    "wholesale",
+    "wholesale available",
+    "wholesale price",
+    "bulk order",
+    "bulk orders",
+    "bulk purchase",
+    "large order",
+    "large orders",
+    "quantity order",
+    "business order",
+    "business orders",
+    "reseller",
+    "reselling",
+    "retail",
+    "dealer",
+    "dealership",
+
+    // -----------------------------------------------------
+    // Store type / availability
+    // -----------------------------------------------------
+
+    "online store",
+    "online shop",
+    "website store",
+    "physical shop",
+    "physical store",
+    "offline store",
+    "online hai",
+    "physical hai",
+
+    // -----------------------------------------------------
+    // General store questions
+    // -----------------------------------------------------
+
+    "nexas store kya hai",
+    "nexas kya hai",
+    "nexas kis country",
+    "store kab se",
+    "store kitna purana",
+    "aapka store",
+    "aapke store",
+    "aapki shop",
+    "shop ke bare mein",
+    "store ke bare mein",
+    "store information",
+    "store info",
   ];
 
   return storeWords.some(
@@ -642,7 +966,7 @@ export function runNexasAIEngine(
     looksLikeStoreQuestion(message)
   ) {
     return createStoreResponse(
-      "Bilkul! Main Nexas Store ke delivery, payment, COD, returns, orders, tracking aur seller-related questions mein help kar sakta hoon. Agar exact information available na hui to aap Chat with Seller se hamari team se directly baat kar sakte hain. 😊",
+      "Bilkul! Main Nexas Store ke delivery, payment, COD, returns, orders, tracking, store location, timings, contact, offers, security, wholesale aur seller-related questions mein help kar sakta hoon. Agar exact information available na hui to aap Chat with Seller se hamari team se directly baat kar sakte hain. 😊",
     );
   }
 
@@ -652,3 +976,4 @@ export function runNexasAIEngine(
 
   return createSellerChatResponse();
 }
+```
