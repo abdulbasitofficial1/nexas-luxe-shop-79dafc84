@@ -31,10 +31,12 @@ function productText(product: Product): string {
       product.sku,
       ...(product.tags ?? []),
 
-      ...(product.options ?? []).flatMap((option) => [
-        option.name,
-        ...option.values,
-      ]),
+      ...(product.options ?? []).flatMap(
+        (option) => [
+          option.name,
+          ...option.values,
+        ],
+      ),
     ]
       .filter(Boolean)
       .join(" "),
@@ -50,14 +52,18 @@ function getWords(value: string): string[] {
 export function searchProducts(
   products: Product[],
   query: ProductSearchQuery,
-  limit = 8,
+  limit = 50,
 ): ProductSearchResult[] {
-  const normalizedQuery = normalize(query.text);
+  const normalizedQuery = normalize(
+    query.text,
+  );
 
   const queryWords = Array.from(
     new Set([
       ...getWords(normalizedQuery),
-      ...(query.keywords ?? []).flatMap(getWords),
+      ...(query.keywords ?? []).flatMap(
+        getWords,
+      ),
     ]),
   );
 
@@ -68,15 +74,19 @@ export function searchProducts(
   const results: ProductSearchResult[] = [];
 
   for (const product of products) {
-    const productName = normalize(product.name);
-    const productCategory = normalize(product.category);
+    const productName = normalize(
+      product.name,
+    );
+
+    const productCategory = normalize(
+      product.category,
+    );
+
     const searchable = productText(product);
 
-    /*
-     * -----------------------------
-     * PRICE FILTER
-     * -----------------------------
-     */
+    // -----------------------------
+    // PRICE FILTER
+    // -----------------------------
 
     if (
       typeof query.maxPrice === "number" &&
@@ -85,17 +95,21 @@ export function searchProducts(
       continue;
     }
 
-    /*
-     * -----------------------------
-     * CATEGORY FILTER
-     * -----------------------------
-     */
+    // -----------------------------
+    // CATEGORY FILTER
+    // -----------------------------
 
     if (requestedCategory) {
       const categoryMatch =
-        productCategory.includes(requestedCategory) ||
-        requestedCategory.includes(productCategory) ||
-        searchable.includes(requestedCategory);
+        productCategory.includes(
+          requestedCategory,
+        ) ||
+        requestedCategory.includes(
+          productCategory,
+        ) ||
+        searchable.includes(
+          requestedCategory,
+        );
 
       if (!categoryMatch) {
         continue;
@@ -104,33 +118,31 @@ export function searchProducts(
 
     let score = 0;
 
-    /*
-     * -----------------------------
-     * WORD MATCHING
-     * -----------------------------
-     */
+    // -----------------------------
+    // WORD MATCHING
+    // -----------------------------
 
     for (const word of queryWords) {
       if (!word) continue;
 
-      // Product name = strongest match
       if (productName === word) {
         score += 25;
-      } else if (productName.includes(word)) {
+      } else if (
+        productName.includes(word)
+      ) {
         score += 15;
       }
 
-      // General product data
       if (searchable.includes(word)) {
         score += 4;
       }
 
-      // Category
-      if (productCategory.includes(word)) {
+      if (
+        productCategory.includes(word)
+      ) {
         score += 8;
       }
 
-      // Tags
       if (
         product.tags?.some((tag) =>
           normalize(tag).includes(word),
@@ -139,7 +151,6 @@ export function searchProducts(
         score += 7;
       }
 
-      // Options such as Color / Size
       if (
         product.options?.some((option) =>
           [
@@ -154,49 +165,53 @@ export function searchProducts(
       }
     }
 
-    /*
-     * -----------------------------
-     * CATEGORY BONUS
-     * -----------------------------
-     */
+    // -----------------------------
+    // CATEGORY BONUS
+    // -----------------------------
 
     if (
       requestedCategory &&
       (
-        productCategory.includes(requestedCategory) ||
-        searchable.includes(requestedCategory)
+        productCategory.includes(
+          requestedCategory,
+        ) ||
+        searchable.includes(
+          requestedCategory,
+        )
       )
     ) {
       score += 20;
     }
 
-    /*
-     * -----------------------------
-     * BUDGET BONUS
-     * -----------------------------
-     */
+    // -----------------------------
+    // BUDGET BONUS
+    // -----------------------------
 
-    if (typeof query.maxPrice === "number") {
+    if (
+      typeof query.maxPrice === "number"
+    ) {
       const price = Number(product.price);
 
       if (price <= query.maxPrice) {
         score += 5;
       }
 
-      // Prefer cheaper products when user
-      // asks for products within a budget.
-      if (price <= query.maxPrice * 0.5) {
+      if (
+        price <=
+        query.maxPrice * 0.5
+      ) {
         score += 2;
       }
     }
 
-    /*
-     * -----------------------------
-     * PRODUCT EXISTENCE
-     * -----------------------------
-     */
+    // -----------------------------
+    // PRODUCT EXISTENCE
+    // -----------------------------
 
-    if (product.name || product.category) {
+    if (
+      product.name ||
+      product.category
+    ) {
       score += 1;
     }
 
@@ -210,13 +225,14 @@ export function searchProducts(
 
   return results
     .sort((a, b) => {
-      // First score
       if (b.score !== a.score) {
         return b.score - a.score;
       }
 
-      // Then cheaper product first
-      return Number(a.product.price) - Number(b.product.price);
+      return (
+        Number(a.product.price) -
+        Number(b.product.price)
+      );
     })
     .slice(0, limit);
 }
