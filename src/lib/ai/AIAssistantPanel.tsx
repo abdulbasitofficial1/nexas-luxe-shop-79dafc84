@@ -51,6 +51,7 @@ export function AIAssistantPanel({
 
   if (!open) return null;
 
+  // Products recommended by Nexas AI
   const recommendedProducts = lastResponse
     ? products
         .filter((product) =>
@@ -74,6 +75,17 @@ export function AIAssistantPanel({
     toast.success(`${product.name} added to cart`);
   };
 
+  // Get product image safely
+  const getProductImage = (product: Product) => {
+    return (
+      product.images?.find(
+        (image) => typeof image === "string" && image.trim(),
+      ) ||
+      product.image ||
+      ""
+    );
+  };
+
   return (
     <div
       className="
@@ -81,11 +93,13 @@ export function AIAssistantPanel({
         flex h-[min(650px,75vh)] w-[calc(100vw-2rem)]
         max-w-md flex-col overflow-hidden
         rounded-2xl border border-yellow-500/30
-        bg-background shadow-[0_20px_60px_rgba(0,0,0,0.45)]
+        bg-background
+        shadow-[0_20px_60px_rgba(0,0,0,0.45)]
         sm:bottom-24 sm:right-6
       "
     >
       {/* ================= HEADER ================= */}
+
       <div
         className="
           flex items-center gap-3
@@ -131,6 +145,7 @@ export function AIAssistantPanel({
       </div>
 
       {/* ================= MESSAGES ================= */}
+
       <div className="flex-1 space-y-3 overflow-y-auto p-4">
         {messages.length === 0 ? (
           <div
@@ -193,6 +208,7 @@ export function AIAssistantPanel({
         ) : (
           <>
             {/* ================= CHAT MESSAGES ================= */}
+
             {messages.map((message, index) => {
               const isUser = message.role === "user";
 
@@ -235,6 +251,7 @@ export function AIAssistantPanel({
             })}
 
             {/* ================= LOADING ================= */}
+
             {loading && (
               <div className="flex justify-start">
                 <div
@@ -272,209 +289,219 @@ export function AIAssistantPanel({
               </div>
             )}
 
-            {/* ================= PRODUCT RECOMMENDATIONS ================= */}
-{/* Recommended products */}
-{!loading &&
-  lastResponse &&
-  lastResponse.productIds.length > 0 && (
-    <div className="mt-3 space-y-2">
-      <p className="text-xs font-semibold text-yellow-500">
-        ✨ Recommended Products
-      </p>
+            {/* ================= RECOMMENDED PRODUCTS ================= */}
 
-      <div className="grid grid-cols-1 gap-2">
-        {products
-          .filter((product) =>
-            lastResponse.productIds.includes(product.id)
-          )
-          .slice(0, 6)
-          .map((product) => (
-            <div
-              key={product.id}
-              className="
-                flex gap-3 overflow-hidden rounded-xl
-                border border-yellow-500/20
-                bg-black/5 p-2
-                transition-all duration-200
-                hover:border-yellow-500/50
-                hover:shadow-[0_0_15px_rgba(234,179,8,0.12)]
-              "
-            >
-              {/* Product Image */}
-              <img
-                src={product.image}
-                alt={product.name}
-                loading="lazy"
-                className="
-                  size-20 shrink-0 rounded-lg
-                  object-cover
-                  border border-border/50
-                "
-                onError={(e) => {
-                  e.currentTarget.style.display = "none";
-                }}
-              />
+            {!loading &&
+              lastResponse &&
+              lastResponse.productIds.length > 0 && (
+                <div className="mt-3 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">✨</span>
 
-              {/* Product Info */}
-              <div className="min-w-0 flex-1">
-                <p className="line-clamp-2 text-sm font-semibold">
-                  {product.name}
-                </p>
+                    <p className="text-xs font-semibold text-yellow-500">
+                      Recommended Products
+                    </p>
+                  </div>
 
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {product.category}
-                </p>
+                  {recommendedProducts.length > 0 ? (
+                    <div className="space-y-3">
+                      {recommendedProducts.map((product) => {
+                        const image = getProductImage(product);
 
-                <p className="mt-1 text-base font-bold text-yellow-500">
-                  Rs {Number(product.price).toLocaleString()}
-                </p>
-
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="gold"
-                  className="mt-2 h-7 px-3 text-xs"
-                  onClick={() => {
-                    window.location.href =
-                      `/products/${product.id}`;
-                  }}
-                >
-                  View Product
-                </Button>
-              </div>
-            </div>
-          ))}
-      </div>
-    </div>
-  )}
-
-                            {/* Category badge */}
-                            {product.category && (
-                              <span
-                                className="
-                                  absolute left-1.5 top-1.5
-                                  rounded-full
-                                  border border-yellow-500/20
-                                  bg-black/80
-                                  px-2 py-0.5
-                                  text-[9px]
-                                  font-medium
-                                  text-yellow-400
-                                  backdrop-blur
-                                "
-                              >
-                                {product.category}
-                              </span>
-                            )}
-                          </div>
-                        </Link>
-
-                        {/* PRODUCT INFO */}
-                        <div className="p-2">
-                          <Link
-                            to="/products/$productId"
-                            params={{
-                              productId: product.id,
-                            }}
-                          >
-                            <p
-                              className="
-                                line-clamp-2
-                                min-h-[32px]
-                                text-xs
-                                font-semibold
-                                text-white
-                                transition-colors
-                                hover:text-yellow-400
-                              "
-                            >
-                              {product.name}
-                            </p>
-                          </Link>
-
-                          {/* PRICE */}
-                          <p
+                        return (
+                          <div
+                            key={product.id}
                             className="
-                              mt-1
-                              text-sm
-                              font-bold
-                              text-yellow-400
+                              overflow-hidden
+                              rounded-xl
+                              border border-yellow-500/20
+                              bg-card
+                              transition-all
+                              hover:border-yellow-500/50
+                              hover:shadow-[0_0_15px_rgba(234,179,8,0.12)]
                             "
                           >
-                            Rs{" "}
-                            {product.price.toLocaleString()}
-                          </p>
+                            <div className="flex gap-3 p-2.5">
+                              {/* PRODUCT IMAGE */}
 
-                          {/* BUTTONS */}
-                          <div className="mt-2 flex gap-1">
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="gold"
-                              className="
-                                h-7 flex-1
-                                px-1.5
-                                text-[10px]
-                              "
-                              onClick={() =>
-                                handleAddToCart(product)
-                              }
-                            >
-                              <ShoppingCart className="mr-1 size-3" />
-                              Add
-                            </Button>
-
-                            <Button
-                              asChild
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              className="
-                                h-7 flex-1
-                                border-yellow-500/30
-                                px-1.5
-                                text-[10px]
-                                hover:border-yellow-500
-                                hover:bg-yellow-500/10
-                              "
-                            >
                               <Link
                                 to="/products/$productId"
                                 params={{
                                   productId: product.id,
                                 }}
+                                className="
+                                  relative
+                                  size-20
+                                  shrink-0
+                                  overflow-hidden
+                                  rounded-lg
+                                  bg-secondary
+                                "
                               >
-                                View
-                              </Link>
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                                {image ? (
+                                  <img
+                                    src={image}
+                                    alt={product.name}
+                                    loading="lazy"
+                                    className="
+                                      h-full
+                                      w-full
+                                      object-cover
+                                    "
+                                    onError={(event) => {
+                                      event.currentTarget.style.display =
+                                        "none";
+                                    }}
+                                  />
+                                ) : (
+                                  <div
+                                    className="
+                                      flex h-full w-full
+                                      items-center justify-center
+                                      text-xs
+                                      text-muted-foreground
+                                    "
+                                  >
+                                    No Image
+                                  </div>
+                                )}
 
-            {/* ================= NO PRODUCTS ================= */}
-            {!loading &&
-              lastResponse &&
-              lastResponse.productIds.length > 0 &&
-              recommendedProducts.length === 0 && (
-                <div
-                  className="
-                    rounded-xl
-                    border border-yellow-500/20
-                    bg-yellow-500/5
-                    p-3 text-xs
-                    text-muted-foreground
-                  "
-                >
-                  Products were found, but they are no longer
-                  available in the current catalog.
+                                {/* CATEGORY */}
+
+                                {product.category && (
+                                  <span
+                                    className="
+                                      absolute
+                                      bottom-1
+                                      left-1
+                                      rounded-full
+                                      bg-black/80
+                                      px-1.5
+                                      py-0.5
+                                      text-[8px]
+                                      font-medium
+                                      text-yellow-400
+                                    "
+                                  >
+                                    {product.category}
+                                  </span>
+                                )}
+                              </Link>
+
+                              {/* PRODUCT DETAILS */}
+
+                              <div className="min-w-0 flex-1">
+                                <Link
+                                  to="/products/$productId"
+                                  params={{
+                                    productId: product.id,
+                                  }}
+                                >
+                                  <p
+                                    className="
+                                      line-clamp-2
+                                      text-sm
+                                      font-semibold
+                                      transition-colors
+                                      hover:text-yellow-400
+                                    "
+                                  >
+                                    {product.name}
+                                  </p>
+                                </Link>
+
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                  {product.category}
+                                </p>
+
+                                {/* PRICE */}
+
+                                <p
+                                  className="
+                                    mt-1
+                                    text-base
+                                    font-bold
+                                    text-yellow-500
+                                  "
+                                >
+                                  Rs{" "}
+                                  {Number(
+                                    product.price,
+                                  ).toLocaleString()}
+                                </p>
+
+                                {/* BUTTONS */}
+
+                                <div className="mt-2 flex gap-1.5">
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="gold"
+                                    className="
+                                      h-7
+                                      flex-1
+                                      px-2
+                                      text-[10px]
+                                    "
+                                    onClick={() =>
+                                      handleAddToCart(product)
+                                    }
+                                  >
+                                    <ShoppingCart className="mr-1 size-3" />
+                                    Add
+                                  </Button>
+
+                                  <Button
+                                    asChild
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="
+                                      h-7
+                                      flex-1
+                                      border-yellow-500/30
+                                      px-2
+                                      text-[10px]
+                                      hover:border-yellow-500
+                                      hover:bg-yellow-500/10
+                                    "
+                                  >
+                                    <Link
+                                      to="/products/$productId"
+                                      params={{
+                                        productId: product.id,
+                                      }}
+                                    >
+                                      View
+                                    </Link>
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div
+                      className="
+                        rounded-xl
+                        border border-yellow-500/20
+                        bg-yellow-500/5
+                        p-3
+                        text-xs
+                        text-muted-foreground
+                      "
+                    >
+                      Products were found, but they are no
+                      longer available in the current catalog.
+                    </div>
+                  )}
                 </div>
               )}
 
             {/* ================= SELLER CHAT ================= */}
+
             {!loading &&
               lastResponse?.sellerChatRequired && (
                 <div
@@ -509,13 +536,9 @@ export function AIAssistantPanel({
       </div>
 
       {/* ================= CLEAR ================= */}
+
       {messages.length > 0 && (
-        <div
-          className="
-            border-t border-border/50
-            px-3 py-2
-          "
-        >
+        <div className="border-t border-border/50 px-3 py-2">
           <button
             type="button"
             onClick={clearConversation}
@@ -532,6 +555,7 @@ export function AIAssistantPanel({
       )}
 
       {/* ================= INPUT ================= */}
+
       <div
         className="
           border-t border-yellow-500/10
