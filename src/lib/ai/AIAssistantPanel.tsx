@@ -42,7 +42,6 @@ export function AIAssistantPanel({
   const { addItem } = useCart();
 
   const [text, setText] = useState("");
-
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -64,20 +63,48 @@ export function AIAssistantPanel({
 
     let url = value.trim();
 
-    // Remove markdown image/link format:
-    // [https://example.com/image.webp](https://example.com/image.webp)
-    const markdownMatch = url.match(
-      /^\[([^\]]+)\]\(([^)]+)\)$/
-    );
-
-    if (markdownMatch) {
-      url = markdownMatch[2];
+    if (!url) {
+      return "";
     }
 
-    // Remove accidental quotes
-    url = url.replace(/^["']|["']$/g, "");
+    // Remove surrounding quotes
+    url = url.replace(/^["']+|["']+$/g, "").trim();
 
-    return url.trim();
+    // -------------------------------------------------------
+    // Firebase may contain:
+    //
+    // [https://example.com/image.webp](https://example.com/image.webp)
+    // -------------------------------------------------------
+    const markdownLinkMatch = url.match(
+      /^\[([^\]]+)\]\((https?:\/\/[^)]+)\)$/i,
+    );
+
+    if (markdownLinkMatch) {
+      return markdownLinkMatch[2].trim();
+    }
+
+    // -------------------------------------------------------
+    // Handle malformed markdown where URL exists inside text
+    // -------------------------------------------------------
+    const extractedUrl = url.match(
+      /https?:\/\/[^\s)\]"']+/i,
+    );
+
+    if (extractedUrl) {
+      return extractedUrl[0].trim();
+    }
+
+    // -------------------------------------------------------
+    // Normal URL
+    // -------------------------------------------------------
+    if (
+      url.startsWith("https://") ||
+      url.startsWith("http://")
+    ) {
+      return url;
+    }
+
+    return "";
   };
 
   // =========================================================
@@ -86,18 +113,22 @@ export function AIAssistantPanel({
   const getProductImages = (product: Product): string[] => {
     const images: string[] = [];
 
-    // Multiple images first
+    // -------------------------------------------------------
+    // Get images from images[]
+    // -------------------------------------------------------
     if (Array.isArray(product.images)) {
-      product.images.forEach((image) => {
+      for (const image of product.images) {
         const cleaned = cleanImageUrl(image);
 
         if (cleaned && !images.includes(cleaned)) {
           images.push(cleaned);
         }
-      });
+      }
     }
 
-    // Main image fallback
+    // -------------------------------------------------------
+    // Fallback to main image
+    // -------------------------------------------------------
     const mainImage = cleanImageUrl(product.image);
 
     if (mainImage && !images.includes(mainImage)) {
@@ -113,7 +144,7 @@ export function AIAssistantPanel({
   const recommendedProducts = lastResponse
     ? products
         .filter((product) =>
-          lastResponse.productIds.includes(product.id)
+          lastResponse.productIds.includes(product.id),
         )
         .slice(0, 6)
     : [];
@@ -140,7 +171,7 @@ export function AIAssistantPanel({
     addItem(product);
 
     toast.success(
-      `${product.name} added to cart`
+      `${product.name} added to cart`,
     );
   };
 
@@ -181,6 +212,7 @@ export function AIAssistantPanel({
             border border-yellow-500/30
             bg-yellow-500/10
             text-yellow-400
+            shadow-[0_0_18px_rgba(234,179,8,0.15)]
           "
         >
           <Bot className="size-5" />
@@ -237,6 +269,7 @@ export function AIAssistantPanel({
                 border border-yellow-500/20
                 bg-yellow-500/10
                 text-yellow-400
+                shadow-[0_0_25px_rgba(234,179,8,0.12)]
               "
             >
               <Bot className="size-8" />
@@ -407,12 +440,10 @@ export function AIAssistantPanel({
                       {recommendedProducts.map(
                         (product) => {
                           const productImages =
-                            getProductImages(
-                              product
-                            );
+                            getProductImages(product);
 
                           const firstImage =
-                            productImages[0];
+                            productImages[0] || "";
 
                           return (
                             <div
@@ -425,6 +456,7 @@ export function AIAssistantPanel({
                                 bg-card
                                 transition-all
                                 hover:border-yellow-500/50
+                                hover:shadow-[0_0_15px_rgba(234,179,8,0.12)]
                               "
                             >
                               {/* PRODUCT ROW */}
@@ -452,60 +484,51 @@ export function AIAssistantPanel({
                                   {firstImage ? (
                                     <img
                                       src={firstImage}
-                                      alt={
-                                        product.name
-                                      }
+                                      alt={product.name}
                                       loading="lazy"
                                       className="
                                         h-full
                                         w-full
                                         object-cover
                                       "
+                                      data-image-index="0"
                                       onError={(
-                                        event
+                                        event,
                                       ) => {
-                                        const
-                                          img =
-                                            event.currentTarget;
+                                        const img =
+                                          event.currentTarget;
 
-                                        // Try next image
-                                        const
-                                          currentIndex =
-                                            Number(
-                                              img.dataset
-                                                .imageIndex ||
-                                                "0"
-                                            );
+                                        const currentIndex =
+                                          Number(
+                                            img.dataset
+                                              .imageIndex ||
+                                              "0",
+                                          );
 
                                         const nextIndex =
-                                          currentIndex +
-                                          1;
+                                          currentIndex + 1;
 
-                                        if (
+                                        const nextImage =
                                           productImages[
                                             nextIndex
-                                          ]
-                                        ) {
+                                          ];
+
+                                        if (nextImage) {
                                           img.dataset.imageIndex =
                                             String(
-                                              nextIndex
+                                              nextIndex,
                                             );
 
                                           img.src =
-                                            productImages[
-                                              nextIndex
-                                            ];
+                                            nextImage;
                                         } else {
                                           img.style.display =
                                             "none";
 
-                                          const
-                                            parent =
-                                              img.parentElement;
+                                          const parent =
+                                            img.parentElement;
 
-                                          if (
-                                            parent
-                                          ) {
+                                          if (parent) {
                                             parent.innerHTML =
                                               `
                                                 <div class="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
@@ -577,9 +600,7 @@ export function AIAssistantPanel({
                                         hover:text-yellow-400
                                       "
                                     >
-                                      {
-                                        product.name
-                                      }
+                                      {product.name}
                                     </p>
                                   </Link>
 
@@ -611,27 +632,9 @@ export function AIAssistantPanel({
                                   >
                                     Rs{" "}
                                     {Number(
-                                      product.price
+                                      product.price,
                                     ).toLocaleString()}
                                   </p>
-
-                                  {/* SALE PRICE */}
-
-                                  {product.salePrice &&
-                                    product.salePrice <
-                                      product.price && (
-                                      <p
-                                        className="
-                                          text-[11px]
-                                          text-green-500
-                                        "
-                                      >
-                                        Sale: Rs{" "}
-                                        {Number(
-                                          product.salePrice
-                                        ).toLocaleString()}
-                                      </p>
-                                    )}
 
                                   {/* BUTTONS */}
 
@@ -648,12 +651,11 @@ export function AIAssistantPanel({
                                       "
                                       onClick={() =>
                                         handleAddToCart(
-                                          product
+                                          product,
                                         )
                                       }
                                     >
                                       <ShoppingCart className="mr-1 size-3" />
-
                                       Add
                                     </Button>
 
@@ -711,7 +713,7 @@ export function AIAssistantPanel({
                               )}
                             </div>
                           );
-                        }
+                        },
                       )}
                     </div>
                   ) : (
@@ -767,7 +769,6 @@ export function AIAssistantPanel({
                     className="gap-2"
                   >
                     <MessageCircle className="size-4" />
-
                     Chat with Seller
                   </Button>
                 </div>
@@ -792,9 +793,7 @@ export function AIAssistantPanel({
         >
           <button
             type="button"
-            onClick={
-              clearConversation
-            }
+            onClick={clearConversation}
             className="
               text-xs
               text-muted-foreground
@@ -823,9 +822,7 @@ export function AIAssistantPanel({
           <Input
             value={text}
             onChange={(event) =>
-              setText(
-                event.target.value
-              )
+              setText(event.target.value)
             }
             onKeyDown={(event) => {
               if (
