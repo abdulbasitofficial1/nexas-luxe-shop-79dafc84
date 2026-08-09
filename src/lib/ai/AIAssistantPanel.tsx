@@ -3,7 +3,7 @@ import { Bot, MessageCircle, Send, ShoppingCart, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Product } from "@/lib/types";
-import { useNexasAI } from "@/hooks/useNexasAI";
+import { useNexasAI } from "@/hooks/useNexasAI"; 
 
 interface AIAssistantPanelProps {
   open: boolean;
