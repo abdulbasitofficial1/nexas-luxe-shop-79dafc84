@@ -42,6 +42,7 @@ export function AIAssistantPanel({
   const { addItem } = useCart();
 
   const [text, setText] = useState("");
+
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -51,11 +52,14 @@ export function AIAssistantPanel({
     });
   }, [messages.length, loading, lastResponse]);
 
-  if (!open) return null;
+  if (!open) {
+    return null;
+  }
 
   // =========================================================
   // CLEAN IMAGE URL
   // =========================================================
+
   const cleanImageUrl = (value?: string): string => {
     if (!value || typeof value !== "string") {
       return "";
@@ -71,32 +75,47 @@ export function AIAssistantPanel({
     url = url.replace(/^["']+|["']+$/g, "").trim();
 
     // -------------------------------------------------------
-    // Firebase may contain:
-    //
+    // Format:
     // [https://example.com/image.webp](https://example.com/image.webp)
     // -------------------------------------------------------
-    const markdownLinkMatch = url.match(
+
+    const markdownLink = url.match(
       /^\[([^\]]+)\]\((https?:\/\/[^)]+)\)$/i,
     );
 
-    if (markdownLinkMatch) {
-      return markdownLinkMatch[2].trim();
+    if (markdownLink?.[2]) {
+      return markdownLink[2].trim();
     }
 
     // -------------------------------------------------------
-    // Handle malformed markdown where URL exists inside text
+    // Format:
+    // ![image](https://example.com/image.webp)
     // -------------------------------------------------------
+
+    const markdownImage = url.match(
+      /^!\[[^\]]*\]\((https?:\/\/[^)]+)\)$/i,
+    );
+
+    if (markdownImage?.[1]) {
+      return markdownImage[1].trim();
+    }
+
+    // -------------------------------------------------------
+    // Extract URL from malformed data
+    // -------------------------------------------------------
+
     const extractedUrl = url.match(
       /https?:\/\/[^\s)\]"']+/i,
     );
 
-    if (extractedUrl) {
+    if (extractedUrl?.[0]) {
       return extractedUrl[0].trim();
     }
 
     // -------------------------------------------------------
     // Normal URL
     // -------------------------------------------------------
+
     if (
       url.startsWith("https://") ||
       url.startsWith("http://")
@@ -110,28 +129,33 @@ export function AIAssistantPanel({
   // =========================================================
   // GET ALL PRODUCT IMAGES
   // =========================================================
+
   const getProductImages = (product: Product): string[] => {
     const images: string[] = [];
 
-    // -------------------------------------------------------
-    // Get images from images[]
-    // -------------------------------------------------------
+    // Firebase images[]
     if (Array.isArray(product.images)) {
-      for (const image of product.images) {
-        const cleaned = cleanImageUrl(image);
+      for (const rawImage of product.images) {
+        const image = cleanImageUrl(rawImage);
 
-        if (cleaned && !images.includes(cleaned)) {
-          images.push(cleaned);
+        if (
+          image &&
+          /^https?:\/\//i.test(image) &&
+          !images.includes(image)
+        ) {
+          images.push(image);
         }
       }
     }
 
-    // -------------------------------------------------------
-    // Fallback to main image
-    // -------------------------------------------------------
+    // Firebase main image fallback
     const mainImage = cleanImageUrl(product.image);
 
-    if (mainImage && !images.includes(mainImage)) {
+    if (
+      mainImage &&
+      /^https?:\/\//i.test(mainImage) &&
+      !images.includes(mainImage)
+    ) {
       images.push(mainImage);
     }
 
@@ -141,6 +165,7 @@ export function AIAssistantPanel({
   // =========================================================
   // RECOMMENDED PRODUCTS
   // =========================================================
+
   const recommendedProducts = lastResponse
     ? products
         .filter((product) =>
@@ -152,6 +177,7 @@ export function AIAssistantPanel({
   // =========================================================
   // SEND MESSAGE
   // =========================================================
+
   const handleSend = async () => {
     const message = text.trim();
 
@@ -167,13 +193,16 @@ export function AIAssistantPanel({
   // =========================================================
   // ADD TO CART
   // =========================================================
+
   const handleAddToCart = (product: Product) => {
     addItem(product);
 
-    toast.success(
-      `${product.name} added to cart`,
-    );
+    toast.success(`${product.name} added to cart`);
   };
+
+  // =========================================================
+  // UI
+  // =========================================================
 
   return (
     <div
@@ -194,7 +223,7 @@ export function AIAssistantPanel({
     >
       {/* =====================================================
           HEADER
-      ====================================================== */}
+      ===================================================== */}
 
       <div
         className="
@@ -245,8 +274,8 @@ export function AIAssistantPanel({
       </div>
 
       {/* =====================================================
-          MESSAGES AREA
-      ====================================================== */}
+          MESSAGES
+      ===================================================== */}
 
       <div className="flex-1 space-y-3 overflow-y-auto p-4">
         {messages.length === 0 ? (
@@ -321,11 +350,10 @@ export function AIAssistantPanel({
           <>
             {/* =================================================
                 CHAT MESSAGES
-            ================================================== */}
+            ================================================= */}
 
             {messages.map((message, index) => {
-              const isUser =
-                message.role === "user";
+              const isUser = message.role === "user";
 
               return (
                 <div
@@ -342,7 +370,6 @@ export function AIAssistantPanel({
                       rounded-2xl
                       px-3 py-2
                       text-sm
-
                       ${
                         isUser
                           ? `
@@ -370,7 +397,7 @@ export function AIAssistantPanel({
 
             {/* =================================================
                 LOADING
-            ================================================== */}
+            ================================================= */}
 
             {loading && (
               <div className="flex justify-start">
@@ -417,18 +444,14 @@ export function AIAssistantPanel({
 
             {/* =================================================
                 PRODUCT RECOMMENDATIONS
-            ================================================== */}
+            ================================================= */}
 
             {!loading &&
               lastResponse &&
               lastResponse.productIds.length > 0 && (
                 <div className="mt-4 space-y-3">
-                  {/* TITLE */}
-
                   <div className="flex items-center gap-2">
-                    <span className="text-sm">
-                      ✨
-                    </span>
+                    <span className="text-sm">✨</span>
 
                     <p className="text-xs font-semibold text-yellow-500">
                       Recommended Products
@@ -437,284 +460,238 @@ export function AIAssistantPanel({
 
                   {recommendedProducts.length > 0 ? (
                     <div className="space-y-3">
-                      {recommendedProducts.map(
-                        (product) => {
-                          const productImages =
-                            getProductImages(product);
+                      {recommendedProducts.map((product) => {
+                        const productImages =
+                          getProductImages(product);
 
-                          const firstImage =
-                            productImages[0] || "";
+                        const firstImage =
+                          productImages[0] || "";
 
-                          return (
-                            <div
-                              key={product.id}
-                              className="
-                                overflow-hidden
-                                rounded-xl
-                                border
-                                border-yellow-500/20
-                                bg-card
-                                transition-all
-                                hover:border-yellow-500/50
-                                hover:shadow-[0_0_15px_rgba(234,179,8,0.12)]
-                              "
-                            >
-                              {/* PRODUCT ROW */}
+                        return (
+                          <div
+                            key={product.id}
+                            className="
+                              overflow-hidden
+                              rounded-xl
+                              border
+                              border-yellow-500/20
+                              bg-card
+                              transition-all
+                              hover:border-yellow-500/50
+                              hover:shadow-[0_0_15px_rgba(234,179,8,0.12)]
+                            "
+                          >
+                            {/* PRODUCT ROW */}
 
-                              <div className="flex gap-3 p-2.5">
-                                {/* =================================================
-                                    IMAGE
-                                ================================================== */}
+                            <div className="flex gap-3 p-2.5">
+                              {/* IMAGE */}
 
+                              <Link
+                                to="/products/$productId"
+                                params={{
+                                  productId: product.id,
+                                }}
+                                className="
+                                  relative
+                                  size-24
+                                  shrink-0
+                                  overflow-hidden
+                                  rounded-lg
+                                  bg-secondary
+                                "
+                              >
+                                {firstImage ? (
+                                  <img
+                                    src={firstImage}
+                                    alt={product.name}
+                                    loading="lazy"
+                                    data-image-index="0"
+                                    className="
+                                      h-full
+                                      w-full
+                                      object-cover
+                                    "
+                                    onError={(event) => {
+                                      const img =
+                                        event.currentTarget;
+
+                                      const currentIndex =
+                                        Number(
+                                          img.dataset
+                                            .imageIndex || "0",
+                                        );
+
+                                      const nextIndex =
+                                        currentIndex + 1;
+
+                                      const nextImage =
+                                        productImages[
+                                          nextIndex
+                                        ];
+
+                                      if (nextImage) {
+                                        img.dataset.imageIndex =
+                                          String(nextIndex);
+
+                                        img.src =
+                                          nextImage;
+                                      } else {
+                                        img.style.display =
+                                          "none";
+                                      }
+                                    }}
+                                  />
+                                ) : (
+                                  <div
+                                    className="
+                                      flex
+                                      h-full
+                                      w-full
+                                      items-center
+                                      justify-center
+                                      text-xs
+                                      text-muted-foreground
+                                    "
+                                  >
+                                    No Image
+                                  </div>
+                                )}
+
+                                {/* CATEGORY */}
+
+                                {product.category && (
+                                  <span
+                                    className="
+                                      absolute
+                                      bottom-1
+                                      left-1
+                                      rounded-full
+                                      bg-black/80
+                                      px-1.5
+                                      py-0.5
+                                      text-[8px]
+                                      font-medium
+                                      text-yellow-400
+                                    "
+                                  >
+                                    {product.category}
+                                  </span>
+                                )}
+                              </Link>
+
+                              {/* PRODUCT DETAILS */}
+
+                              <div className="min-w-0 flex-1">
                                 <Link
                                   to="/products/$productId"
                                   params={{
-                                    productId:
-                                      product.id,
+                                    productId: product.id,
                                   }}
-                                  className="
-                                    relative
-                                    size-24
-                                    shrink-0
-                                    overflow-hidden
-                                    rounded-lg
-                                    bg-secondary
-                                  "
                                 >
-                                  {firstImage ? (
-                                    <img
-                                      src={firstImage}
-                                      alt={product.name}
-                                      loading="lazy"
-                                      className="
-                                        h-full
-                                        w-full
-                                        object-cover
-                                      "
-                                      data-image-index="0"
-                                      onError={(
-                                        event,
-                                      ) => {
-                                        const img =
-                                          event.currentTarget;
-
-                                        const currentIndex =
-                                          Number(
-                                            img.dataset
-                                              .imageIndex ||
-                                              "0",
-                                          );
-
-                                        const nextIndex =
-                                          currentIndex + 1;
-
-                                        const nextImage =
-                                          productImages[
-                                            nextIndex
-                                          ];
-
-                                        if (nextImage) {
-                                          img.dataset.imageIndex =
-                                            String(
-                                              nextIndex,
-                                            );
-
-                                          img.src =
-                                            nextImage;
-                                        } else {
-                                          img.style.display =
-                                            "none";
-
-                                          const parent =
-                                            img.parentElement;
-
-                                          if (parent) {
-                                            parent.innerHTML =
-                                              `
-                                                <div class="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
-                                                  No Image
-                                                </div>
-                                              `;
-                                          }
-                                        }
-                                      }}
-                                    />
-                                  ) : (
-                                    <div
-                                      className="
-                                        flex
-                                        h-full
-                                        w-full
-                                        items-center
-                                        justify-center
-                                        text-xs
-                                        text-muted-foreground
-                                      "
-                                    >
-                                      No Image
-                                    </div>
-                                  )}
-
-                                  {/* CATEGORY */}
-
-                                  {product.category && (
-                                    <span
-                                      className="
-                                        absolute
-                                        bottom-1
-                                        left-1
-                                        rounded-full
-                                        bg-black/80
-                                        px-1.5
-                                        py-0.5
-                                        text-[8px]
-                                        font-medium
-                                        text-yellow-400
-                                      "
-                                    >
-                                      {
-                                        product.category
-                                      }
-                                    </span>
-                                  )}
-                                </Link>
-
-                                {/* =================================================
-                                    PRODUCT DETAILS
-                                ================================================== */}
-
-                                <div className="min-w-0 flex-1">
-                                  <Link
-                                    to="/products/$productId"
-                                    params={{
-                                      productId:
-                                        product.id,
-                                    }}
-                                  >
-                                    <p
-                                      className="
-                                        line-clamp-2
-                                        text-sm
-                                        font-semibold
-                                        transition-colors
-                                        hover:text-yellow-400
-                                      "
-                                    >
-                                      {product.name}
-                                    </p>
-                                  </Link>
-
-                                  {/* CATEGORY */}
-
-                                  {product.category && (
-                                    <p
-                                      className="
-                                        mt-1
-                                        text-xs
-                                        text-muted-foreground
-                                      "
-                                    >
-                                      {
-                                        product.category
-                                      }
-                                    </p>
-                                  )}
-
-                                  {/* PRICE */}
-
                                   <p
                                     className="
-                                      mt-1
-                                      text-base
-                                      font-bold
-                                      text-yellow-500
+                                      line-clamp-2
+                                      text-sm
+                                      font-semibold
+                                      transition-colors
+                                      hover:text-yellow-400
                                     "
                                   >
-                                    Rs{" "}
-                                    {Number(
-                                      product.price,
-                                    ).toLocaleString()}
+                                    {product.name}
                                   </p>
+                                </Link>
 
-                                  {/* BUTTONS */}
+                                {product.category && (
+                                  <p className="mt-1 text-xs text-muted-foreground">
+                                    {product.category}
+                                  </p>
+                                )}
 
-                                  <div className="mt-2 flex gap-1.5">
-                                    <Button
-                                      type="button"
-                                      size="sm"
-                                      variant="gold"
-                                      className="
-                                        h-7
-                                        flex-1
-                                        px-2
-                                        text-[10px]
-                                      "
-                                      onClick={() =>
-                                        handleAddToCart(
-                                          product,
-                                        )
-                                      }
-                                    >
-                                      <ShoppingCart className="mr-1 size-3" />
-                                      Add
-                                    </Button>
+                                {/* PRICE */}
 
-                                    <Button
-                                      asChild
-                                      type="button"
-                                      size="sm"
-                                      variant="outline"
-                                      className="
-                                        h-7
-                                        flex-1
-                                        border-yellow-500/30
-                                        px-2
-                                        text-[10px]
-                                        hover:border-yellow-500
-                                        hover:bg-yellow-500/10
-                                      "
-                                    >
-                                      <Link
-                                        to="/products/$productId"
-                                        params={{
-                                          productId:
-                                            product.id,
-                                        }}
-                                      >
-                                        View
-                                      </Link>
-                                    </Button>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* =================================================
-                                  IMAGE COUNT
-                              ================================================== */}
-
-                              {productImages.length >
-                                1 && (
-                                <div
+                                <p
                                   className="
-                                    border-t
-                                    border-border/40
-                                    px-2.5
-                                    py-1.5
-                                    text-[9px]
-                                    text-muted-foreground
+                                    mt-1
+                                    text-base
+                                    font-bold
+                                    text-yellow-500
                                   "
                                 >
-                                  📷{" "}
-                                  {
-                                    productImages.length
-                                  }{" "}
-                                  product images
+                                  Rs{" "}
+                                  {Number(
+                                    product.price,
+                                  ).toLocaleString()}
+                                </p>
+
+                                {/* BUTTONS */}
+
+                                <div className="mt-2 flex gap-1.5">
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="gold"
+                                    className="
+                                      h-7
+                                      flex-1
+                                      px-2
+                                      text-[10px]
+                                    "
+                                    onClick={() =>
+                                      handleAddToCart(product)
+                                    }
+                                  >
+                                    <ShoppingCart className="mr-1 size-3" />
+                                    Add
+                                  </Button>
+
+                                  <Button
+                                    asChild
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="
+                                      h-7
+                                      flex-1
+                                      border-yellow-500/30
+                                      px-2
+                                      text-[10px]
+                                      hover:border-yellow-500
+                                      hover:bg-yellow-500/10
+                                    "
+                                  >
+                                    <Link
+                                      to="/products/$productId"
+                                      params={{
+                                        productId: product.id,
+                                      }}
+                                    >
+                                      View
+                                    </Link>
+                                  </Button>
                                 </div>
-                              )}
+                              </div>
                             </div>
-                          );
-                        },
-                      )}
+
+                            {/* IMAGE COUNT */}
+
+                            {productImages.length > 1 && (
+                              <div
+                                className="
+                                  border-t
+                                  border-border/40
+                                  px-2.5
+                                  py-1.5
+                                  text-[9px]
+                                  text-muted-foreground
+                                "
+                              >
+                                📷 {productImages.length} product
+                                images
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   ) : (
                     <div
@@ -728,9 +705,8 @@ export function AIAssistantPanel({
                         text-muted-foreground
                       "
                     >
-                      Products were found, but they
-                      are no longer available in the
-                      current catalog.
+                      Products were found, but they are no
+                      longer available in the current catalog.
                     </div>
                   )}
                 </div>
@@ -738,7 +714,7 @@ export function AIAssistantPanel({
 
             {/* =================================================
                 SELLER CHAT
-            ================================================== */}
+            ================================================= */}
 
             {!loading &&
               lastResponse?.sellerChatRequired && (
@@ -752,20 +728,15 @@ export function AIAssistantPanel({
                   "
                 >
                   <p className="mb-2 text-xs text-muted-foreground">
-                    Need more help? Talk directly with
-                    our seller.
+                    Need more help? Talk directly with our seller.
                   </p>
 
                   <Button
                     type="button"
                     size="sm"
                     variant="gold"
-                    onClick={
-                      onChatWithSeller
-                    }
-                    disabled={
-                      !onChatWithSeller
-                    }
+                    onClick={onChatWithSeller}
+                    disabled={!onChatWithSeller}
                     className="gap-2"
                   >
                     <MessageCircle className="size-4" />
@@ -781,7 +752,7 @@ export function AIAssistantPanel({
 
       {/* =====================================================
           CLEAR CONVERSATION
-      ====================================================== */}
+      ===================================================== */}
 
       {messages.length > 0 && (
         <div
@@ -808,7 +779,7 @@ export function AIAssistantPanel({
 
       {/* =====================================================
           INPUT
-      ====================================================== */}
+      ===================================================== */}
 
       <div
         className="
@@ -830,7 +801,6 @@ export function AIAssistantPanel({
                 !event.shiftKey
               ) {
                 event.preventDefault();
-
                 void handleSend();
               }
             }}
@@ -846,13 +816,8 @@ export function AIAssistantPanel({
             type="button"
             size="icon"
             variant="gold"
-            onClick={() =>
-              void handleSend()
-            }
-            disabled={
-              !text.trim() ||
-              loading
-            }
+            onClick={() => void handleSend()}
+            disabled={!text.trim() || loading}
             aria-label="Send message"
           >
             <Send className="size-4" />
@@ -867,8 +832,7 @@ export function AIAssistantPanel({
             text-muted-foreground
           "
         >
-          Nexas AI answers using your
-          store catalog.
+          Nexas AI answers using your store catalog.
         </p>
       </div>
     </div>
