@@ -1,32 +1,39 @@
 import { useCallback, useState } from "react";
 import type { Product } from "@/lib/types";
 import type { AIMessage, AIResponse } from "@/lib/ai/types";
-import { getRecommendedProducts, runNexasAssistant } from "@/lib/ai/assistant";
+import {
+  getRecommendedProducts,
+  runNexasAssistant,
+} from "@/lib/ai/assistant";
 
 export function useNexasAI(products: Product[]) {
   const [messages, setMessages] = useState<AIMessage[]>([]);
   const [loading, setLoading] = useState(false);
-  const [lastResponse, setLastResponse] = useState<AIResponse | null>(null);
+  const [lastResponse, setLastResponse] =
+    useState<AIResponse | null>(null);
 
   const sendMessage = useCallback(
     async (message: string, currentProductId?: string) => {
       const trimmed = message.trim();
 
-      if (!trimmed || loading) return null;
+      if (!trimmed || loading) {
+        return null;
+      }
 
       const userMessage: AIMessage = {
         role: "user",
         content: trimmed,
       };
 
-      setMessages((previous) => [...previous, userMessage]);
+      // Save user message immediately.
+      setMessages((previous) => [
+        ...previous,
+        userMessage,
+      ]);
+
       setLoading(true);
 
       try {
-        /*
-         * Run the Nexas AI engine with the real products
-         * already loaded by the application.
-         */
         const response = runNexasAssistant({
           message: trimmed,
           products,
