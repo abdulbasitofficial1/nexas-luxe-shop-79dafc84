@@ -25,10 +25,14 @@ function normalize(value: string): string {
     .trim();
 }
 
+function hasAny(text: string, words: string[]): boolean {
+  return words.some((word) => text.includes(word));
+}
+
 function isGreeting(message: string): boolean {
   const text = normalize(message);
 
-  const greetings = [
+  return hasAny(text, [
     "hi",
     "hello",
     "hey",
@@ -42,18 +46,13 @@ function isGreeting(message: string): boolean {
     "how are you",
     "good morning",
     "good evening",
-  ];
-
-  return greetings.some(
-    (greeting) =>
-      text === greeting || text.startsWith(`${greeting} `)
-  );
+  ]);
 }
 
 function isUnsupported(message: string): boolean {
   const text = normalize(message);
 
-  const unrelatedPatterns = [
+  return hasAny(text, [
     "write a poem",
     "write me a story",
     "solve my homework",
@@ -65,81 +64,7 @@ function isUnsupported(message: string): boolean {
     "translate this",
     "coding",
     "programming",
-  ];
-
-  return unrelatedPatterns.some((pattern) =>
-    text.includes(pattern)
-  );
-}
-
-function looksLikeProductQuestion(message: string): boolean {
-  const text = normalize(message);
-
-  const productWords = [
-    "product",
-    "item",
-    "price",
-    "price kya",
-    "kitne ka",
-    "kitnay ka",
-    "cost",
-    "rate",
-    "buy",
-    "chahiye",
-    "chahta",
-    "chahti",
-    "dikhao",
-    "dikhaye",
-    "show",
-    "available",
-    "stock",
-    "color",
-    "colour",
-    "size",
-    "budget",
-    "sasta",
-    "sasti",
-    "cheap",
-    "acha",
-    "achi",
-    "best",
-    "phone",
-    "mobile",
-    "cover",
-    "case",
-    "gift",
-    "bag",
-    "shoes",
-    "jewelry",
-    "jewellery",
-  ];
-
-  return productWords.some((word) => text.includes(word));
-}
-
-function looksLikeStoreQuestion(message: string): boolean {
-  const text = normalize(message);
-
-  const storeWords = [
-    "delivery",
-    "deliver",
-    "cod",
-    "cash on delivery",
-    "return",
-    "returns",
-    "payment",
-    "easypaisa",
-    "jazzcash",
-    "order",
-    "cancel",
-    "tracking",
-    "seller",
-    "nexas",
-    "store",
-    "shipping",
-  ];
-
-  return storeWords.some((word) => text.includes(word));
+  ]);
 }
 
 function extractBudget(message: string): number | undefined {
@@ -189,11 +114,153 @@ function extractCategory(message: string): string | undefined {
     "bags",
     "gifts",
     "gift",
+    "watches",
+    "watch",
   ];
 
-  return categories.find((category) =>
-    text.includes(category)
-  );
+  return categories.find((category) => text.includes(category));
+}
+
+function looksLikeProductQuestion(message: string): boolean {
+  const text = normalize(message);
+
+  if (extractBudget(message)) return true;
+  if (extractCategory(message)) return true;
+
+  return hasAny(text, [
+    "product",
+    "item",
+    "price",
+    "kitne ka",
+    "kitnay ka",
+    "cost",
+    "rate",
+    "buy",
+    "chahiye",
+    "chahta",
+    "chahti",
+    "dikhao",
+    "dikhaye",
+    "show",
+    "stock",
+    "color",
+    "colour",
+    "size",
+    "budget",
+    "sasta",
+    "cheap",
+    "best",
+    "latest",
+    "new arrivals",
+    "gift",
+    "cover",
+    "case",
+    "bag",
+    "shoes",
+    "watch",
+  ]);
+}
+
+function storeAnswer(message: string): string | null {
+  const text = normalize(message);
+
+  if (
+    hasAny(text, [
+      "cod",
+      "cash on delivery",
+      "cash on dilivery",
+      "cash delivery",
+    ])
+  ) {
+    return "Ji haan 😊 Nexas Store par Cash on Delivery (COD) available hai. Aap order place karte waqt COD select kar sakte hain.";
+  }
+
+  if (hasAny(text, ["easypaisa", "easy paisa"])) {
+    return "Ji haan 😊 EasyPaisa payment available hai.";
+  }
+
+  if (hasAny(text, ["jazzcash", "jazz cash"])) {
+    return "Ji haan 😊 JazzCash payment available hai.";
+  }
+
+  if (
+    hasAny(text, [
+      "delivery",
+      "deliver",
+      "shipping",
+      "parcel kab",
+      "kitne din",
+    ])
+  ) {
+    return "Nexas Store ki delivery aam tor par 3–5 working days leti hai. Pakistan mein nationwide delivery available hai.";
+  }
+
+  if (
+    hasAny(text, [
+      "return",
+      "returns",
+      "exchange",
+      "refund",
+    ])
+  ) {
+    return "Nexas Store par 7 days return policy available hai. Agar product mein issue ho to 7 din ke andar return request ki ja sakti hai.";
+  }
+
+  if (
+    hasAny(text, [
+      "cancel order",
+      "order cancel",
+      "cancel",
+    ])
+  ) {
+    return "Order cancel karne ke liye seller se jaldi contact karein. Agar order dispatch na hua ho to cancellation possible hoti hai.";
+  }
+
+  if (
+    hasAny(text, [
+      "tracking",
+      "track order",
+      "tracking number",
+      "tracking id",
+      "mera order kahan",
+    ])
+  ) {
+    return "Aap Track Order page par apni tracking ID enter karke order status check kar sakte hain.";
+  }
+
+  if (
+    hasAny(text, [
+      "payment",
+      "payment methods",
+      "pay kaise",
+    ])
+  ) {
+    return "Nexas Store par Cash on Delivery, EasyPaisa aur JazzCash payment methods available hain.";
+  }
+
+  if (
+    hasAny(text, [
+      "nexas store kya",
+      "store safe",
+      "trusted",
+      "secure",
+    ])
+  ) {
+    return "Nexas Store ek online shopping store hai jahan premium products, secure ordering, Cash on Delivery aur 7 days return policy available hai.";
+  }
+
+  if (
+    hasAny(text, [
+      "seller",
+      "support",
+      "customer support",
+      "contact",
+    ])
+  ) {
+    return "Aap Chat with Seller ke through Nexas Store team se directly baat kar sakte hain. 😊";
+  }
+
+  return null;
 }
 
 export function runNexasAIEngine(
@@ -211,6 +278,12 @@ export function runNexasAIEngine(
 
   if (isUnsupported(message)) {
     return createUnsupportedResponse();
+  }
+
+  const answer = storeAnswer(message);
+
+  if (answer) {
+    return createStoreResponse(answer);
   }
 
   if (looksLikeProductQuestion(message)) {
@@ -231,28 +304,18 @@ export function runNexasAIEngine(
       return createSellerChatResponse();
     }
 
-    const productIds = results.map(
-      (result) => result.product.id
-    );
+    const productIds = results.map((result) => result.product.id);
 
     const productNames = results
       .slice(0, 3)
       .map((result) => result.product.name)
       .join(", ");
 
-    const budgetText = budget
-      ? ` Rs ${budget} ke andar`
-      : "";
+    const budgetText = budget ? ` Rs ${budget} ke andar` : "";
 
     return createProductResponse(
       `Bilkul! Mujhe ye matching products mile${budgetText}: ${productNames}. 😊`,
       productIds
-    );
-  }
-
-  if (looksLikeStoreQuestion(message)) {
-    return createStoreResponse(
-      "Main Nexas Store ke products aur store-related information mein help kar sakta hoon. Agar mujhe exact answer na pata ho, aap Chat with Seller kar sakte hain. 😊"
     );
   }
 
