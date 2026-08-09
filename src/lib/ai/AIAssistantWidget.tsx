@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bot, X } from "lucide-react";
+import { Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Product } from "@/lib/types";
 import { AIAssistantPanel } from "./AIAssistantPanel";
@@ -48,7 +48,7 @@ export function AIAssistantWidget({
           "
         >
           <span className="relative flex items-center justify-center">
-            <Bot className="size-6 sm:size-7" />
+           <Sparkles className="size-6 sm:size-7" />
 
             <span
               className="
