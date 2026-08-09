@@ -64,7 +64,7 @@ function isGreeting(
   return greetings.some(
     (greeting) =>
       text === greeting ||
-      text.startsWith(`${greeting} `),
+      text.startsWith(`${greeting} ),
   );
 }
 ```
