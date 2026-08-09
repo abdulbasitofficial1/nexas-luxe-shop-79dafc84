@@ -12,10 +12,6 @@ export interface ProductSearchResult {
   score: number;
 }
 
-/**
- * Normalizes English, Roman Urdu and Hinglish text
- * for basic local product matching.
- */
 function normalize(value: string): string {
   return value
     .toLowerCase()
@@ -25,9 +21,6 @@ function normalize(value: string): string {
     .trim();
 }
 
-/**
- * Creates searchable text from a real Nexas product.
- */
 function productText(product: Product): string {
   return normalize(
     [
@@ -46,13 +39,6 @@ function productText(product: Product): string {
   );
 }
 
-/**
- * Performs a lightweight local search against the
- * existing Nexas Store products.
- *
- * This is NOT a second database.
- * It searches the Product[] already supplied by the app.
- */
 export function searchProducts(
   products: Product[],
   query: ProductSearchQuery,
@@ -66,21 +52,52 @@ export function searchProducts(
   ];
 
   return products
+    .filter((product) => {
+      // If a budget is provided, only return products
+      // within that budget.
+      if (
+        typeof query.maxPrice === "number" &&
+        product.price > query.maxPrice
+      ) {
+        return false;
+      }
+
+      // If a category is provided, prefer matching category.
+      if (query.category && product.category) {
+        const requestedCategory = normalize(query.category);
+        const productCategory = normalize(product.category);
+
+        const categoryMatches =
+          productCategory.includes(requestedCategory) ||
+          requestedCategory.includes(productCategory);
+
+        if (!categoryMatches) {
+          return false;
+        }
+      }
+
+      return true;
+    })
     .map((product) => {
       const searchable = productText(product);
+      const normalizedName = normalize(product.name);
+
       let score = 0;
 
       for (const word of queryWords) {
         if (!word) continue;
 
-        if (normalize(product.name).includes(word)) {
+        // Exact product-name match gets the highest score.
+        if (normalizedName.includes(word)) {
           score += 10;
         }
 
+        // General product information match.
         if (searchable.includes(word)) {
           score += 3;
         }
 
+        // Category match.
         if (
           product.category &&
           normalize(product.category).includes(word)
@@ -88,6 +105,7 @@ export function searchProducts(
           score += 5;
         }
 
+        // Tag match.
         if (
           product.tags?.some((tag) =>
             normalize(tag).includes(word)
@@ -97,6 +115,7 @@ export function searchProducts(
         }
       }
 
+      // Reward products comfortably inside the requested budget.
       if (
         typeof query.maxPrice === "number" &&
         product.price <= query.maxPrice
@@ -104,6 +123,7 @@ export function searchProducts(
         score += 5;
       }
 
+      // Category match bonus.
       if (
         query.category &&
         product.category &&
