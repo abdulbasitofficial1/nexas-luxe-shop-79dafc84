@@ -64,7 +64,7 @@ function isGreeting(
   return greetings.some(
     (greeting) =>
       text === greeting ||
-      text.startsWith(`${greeting} ),
+      text.startsWith(${greeting} ),
   );
 }
 
@@ -853,7 +853,7 @@ export function runNexasAIEngine(
       : " Ye is search ke last matching products hain. 😊";
 
     return createProductResponse(
-      `Bilkul! Ye rahe aur products: ${productNames}. 😊${moreMessage}`,
+       ${productNames}. 😊${moreMessage}`,
       nextIds,
       {
         hasMoreProducts: hasMore,
