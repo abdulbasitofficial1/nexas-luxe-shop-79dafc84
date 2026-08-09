@@ -11,6 +11,7 @@ import { useProducts } from "@/lib/store";
 import { useOptionalEventEngine } from "@/lib/event-context";
 import { EventCountdownSection } from "@/components/nexas/event/EventCountdownSection";
 import { getEventPhase } from "@/lib/event-types";
+import { AIAssistantWidget } from "@/components/nexas/ai/AIAssistantWidget";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -133,8 +134,10 @@ function Index() {
     <>
       <HeroSlider slides={slides} />
 
+<AIAssistantWidget products={products} />
+      
       {activeEvent ? <EventCountdownSection event={activeEvent} now={engine!.now} /> : null}
-
+      
       <CategoryStrip categories={categories} />
 
       <ProductRail
