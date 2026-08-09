@@ -24,6 +24,7 @@ import { BottomNav } from "@/components/nexas/BottomNav";
 
 import { AdminLoginModal } from "@/components/nexas/AdminLoginModal";
 import { Toaster } from "@/components/ui/sonner";
+import { NexasAI } from "@/components/nexas/ai/NexasAI";
 
 function NotFoundComponent() {
   return (
@@ -151,20 +152,28 @@ function RootComponent() {
         <UIProvider>
           <CartProvider>
             <EventProvider>
-            <div className="flex min-h-screen flex-col">
-              <EventPreviewBar />
-              <Navbar />
-              <main className="flex-1">
-                {/* Nested routes render here. */}
-                <Outlet />
-              </main>
-              <Footer />
-              <div className="h-14 md:hidden" />
-            </div>
-            <BottomNav />
-            <FloatingCountdown />
-            <SaleLaunchOverlay />
+              <div className="flex min-h-screen flex-col">
+                <EventPreviewBar />
+                <Navbar />
+
+                <main className="flex-1">
+                  {/* Nested routes render here. */}
+                  <Outlet />
+                </main>
+
+                <Footer />
+
+                <div className="h-14 md:hidden" />
+              </div>
+
+              <BottomNav />
+              <FloatingCountdown />
+              <SaleLaunchOverlay />
+
+              {/* Nexas AI — customer website */}
+              <NexasAI />
             </EventProvider>
+
             <AdminLoginModal />
             <Toaster position="top-center" richColors />
           </CartProvider>
