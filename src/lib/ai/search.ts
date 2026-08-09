@@ -27,119 +27,196 @@ function productText(product: Product): string {
       product.name,
       product.category,
       product.description,
-      ...(product.tags ?? []),
+      product.shortDescription,
       product.sku,
+      ...(product.tags ?? []),
+
       ...(product.options ?? []).flatMap((option) => [
         option.name,
         ...option.values,
       ]),
     ]
       .filter(Boolean)
-      .join(" ")
+      .join(" "),
   );
+}
+
+function getWords(value: string): string[] {
+  return normalize(value)
+    .split(" ")
+    .filter((word) => word.length >= 2);
 }
 
 export function searchProducts(
   products: Product[],
   query: ProductSearchQuery,
-  limit = 8
+  limit = 8,
 ): ProductSearchResult[] {
   const normalizedQuery = normalize(query.text);
 
-  const queryWords = [
-    ...normalizedQuery.split(" ").filter(Boolean),
-    ...(query.keywords ?? []).map(normalize),
-  ];
+  const queryWords = Array.from(
+    new Set([
+      ...getWords(normalizedQuery),
+      ...(query.keywords ?? []).flatMap(getWords),
+    ]),
+  );
 
-  return products
-    .filter((product) => {
-      // If a budget is provided, only return products
-      // within that budget.
-      if (
-        typeof query.maxPrice === "number" &&
-        product.price > query.maxPrice
-      ) {
-        return false;
+  const requestedCategory = query.category
+    ? normalize(query.category)
+    : "";
+
+  const results: ProductSearchResult[] = [];
+
+  for (const product of products) {
+    const productName = normalize(product.name);
+    const productCategory = normalize(product.category);
+    const searchable = productText(product);
+
+    /*
+     * -----------------------------
+     * PRICE FILTER
+     * -----------------------------
+     */
+
+    if (
+      typeof query.maxPrice === "number" &&
+      Number(product.price) > query.maxPrice
+    ) {
+      continue;
+    }
+
+    /*
+     * -----------------------------
+     * CATEGORY FILTER
+     * -----------------------------
+     */
+
+    if (requestedCategory) {
+      const categoryMatch =
+        productCategory.includes(requestedCategory) ||
+        requestedCategory.includes(productCategory) ||
+        searchable.includes(requestedCategory);
+
+      if (!categoryMatch) {
+        continue;
+      }
+    }
+
+    let score = 0;
+
+    /*
+     * -----------------------------
+     * WORD MATCHING
+     * -----------------------------
+     */
+
+    for (const word of queryWords) {
+      if (!word) continue;
+
+      // Product name = strongest match
+      if (productName === word) {
+        score += 25;
+      } else if (productName.includes(word)) {
+        score += 15;
       }
 
-      // If a category is provided, prefer matching category.
-      if (query.category && product.category) {
-        const requestedCategory = normalize(query.category);
-        const productCategory = normalize(product.category);
-
-        const categoryMatches =
-          productCategory.includes(requestedCategory) ||
-          requestedCategory.includes(productCategory);
-
-        if (!categoryMatches) {
-          return false;
-        }
+      // General product data
+      if (searchable.includes(word)) {
+        score += 4;
       }
 
-      return true;
-    })
-    .map((product) => {
-      const searchable = productText(product);
-      const normalizedName = normalize(product.name);
-
-      let score = 0;
-
-      for (const word of queryWords) {
-        if (!word) continue;
-
-        // Exact product-name match gets the highest score.
-        if (normalizedName.includes(word)) {
-          score += 10;
-        }
-
-        // General product information match.
-        if (searchable.includes(word)) {
-          score += 3;
-        }
-
-        // Category match.
-        if (
-          product.category &&
-          normalize(product.category).includes(word)
-        ) {
-          score += 5;
-        }
-
-        // Tag match.
-        if (
-          product.tags?.some((tag) =>
-            normalize(tag).includes(word)
-          )
-        ) {
-          score += 4;
-        }
-      }
-
-      // Reward products comfortably inside the requested budget.
-      if (
-        typeof query.maxPrice === "number" &&
-        product.price <= query.maxPrice
-      ) {
-        score += 5;
-      }
-
-      // Category match bonus.
-      if (
-        query.category &&
-        product.category &&
-        normalize(product.category).includes(
-          normalize(query.category)
-        )
-      ) {
+      // Category
+      if (productCategory.includes(word)) {
         score += 8;
       }
 
-      return {
+      // Tags
+      if (
+        product.tags?.some((tag) =>
+          normalize(tag).includes(word),
+        )
+      ) {
+        score += 7;
+      }
+
+      // Options such as Color / Size
+      if (
+        product.options?.some((option) =>
+          [
+            option.name,
+            ...option.values,
+          ].some((value) =>
+            normalize(value).includes(word),
+          ),
+        )
+      ) {
+        score += 5;
+      }
+    }
+
+    /*
+     * -----------------------------
+     * CATEGORY BONUS
+     * -----------------------------
+     */
+
+    if (
+      requestedCategory &&
+      (
+        productCategory.includes(requestedCategory) ||
+        searchable.includes(requestedCategory)
+      )
+    ) {
+      score += 20;
+    }
+
+    /*
+     * -----------------------------
+     * BUDGET BONUS
+     * -----------------------------
+     */
+
+    if (typeof query.maxPrice === "number") {
+      const price = Number(product.price);
+
+      if (price <= query.maxPrice) {
+        score += 5;
+      }
+
+      // Prefer cheaper products when user
+      // asks for products within a budget.
+      if (price <= query.maxPrice * 0.5) {
+        score += 2;
+      }
+    }
+
+    /*
+     * -----------------------------
+     * PRODUCT EXISTENCE
+     * -----------------------------
+     */
+
+    if (product.name || product.category) {
+      score += 1;
+    }
+
+    if (score > 0) {
+      results.push({
         product,
         score,
-      };
+      });
+    }
+  }
+
+  return results
+    .sort((a, b) => {
+      // First score
+      if (b.score !== a.score) {
+        return b.score - a.score;
+      }
+
+      // Then cheaper product first
+      return Number(a.product.price) - Number(b.product.price);
     })
-    .filter((result) => result.score > 0)
-    .sort((a, b) => b.score - a.score)
     .slice(0, limit);
 }
