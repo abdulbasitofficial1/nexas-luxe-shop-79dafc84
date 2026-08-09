@@ -39,6 +39,7 @@ function normalize(value: string): string {
 // GREETINGS
 // =========================================================
 
+```ts
 function isGreeting(
   message: string,
 ): boolean {
@@ -67,6 +68,8 @@ function isGreeting(
       text.startsWith(`${greeting} `),
   );
 }
+```
+
 
 // =========================================================
 // MORE PRODUCTS
