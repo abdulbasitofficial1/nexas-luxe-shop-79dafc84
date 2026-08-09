@@ -38,7 +38,6 @@ function normalize(value: string): string {
 // GREETINGS
 // =========================================================
 
-
 function isGreeting(
   message: string,
 ): boolean {
@@ -52,6 +51,7 @@ function isGreeting(
     "aoa",
     "assalam o alaikum",
     "assalamualaikum",
+    "assalamualaikum",
     "kya haal",
     "kaise ho",
     "kaisay ho",
@@ -64,11 +64,9 @@ function isGreeting(
   return greetings.some(
     (greeting) =>
       text === greeting ||
-      text.startsWith(${greeting} ),
+      text.startsWith(greeting + " "),
   );
 }
-
-
 
 // =========================================================
 // MORE PRODUCTS
@@ -463,7 +461,7 @@ function looksLikeStoreQuestion(
     "track my order",
 
     // -----------------------------------------------------
-    // Return / exchange / refund extra questions
+    // Return / exchange / refund
     // -----------------------------------------------------
 
     "return policy",
@@ -748,7 +746,9 @@ function getPreviouslyShownIds(
     }
   }
 
-  return Array.from(new Set(ids));
+  return Array.from(
+    new Set(ids),
+  );
 }
 
 // =========================================================
@@ -853,7 +853,7 @@ export function runNexasAIEngine(
       : " Ye is search ke last matching products hain. 😊";
 
     return createProductResponse(
-       ${productNames}. 😊${moreMessage}`,
+      `Bilkul! Ye rahe aur products: ${productNames}. 😊${moreMessage}`,
       nextIds,
       {
         hasMoreProducts: hasMore,
