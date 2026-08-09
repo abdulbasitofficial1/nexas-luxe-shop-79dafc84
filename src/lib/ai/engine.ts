@@ -1,6 +1,7 @@
 import type { Product } from "../types";
 import type { AIMessage, AIResponse } from "./types";
 import { searchProducts } from "./search";
+
 import {
   createGreetingResponse,
   createProductResponse,
@@ -16,6 +17,10 @@ export interface NexasAIEngineRequest {
   currentProductId?: string;
 }
 
+/* ---------------------------------------
+   Text Normalizer
+---------------------------------------- */
+
 function normalize(value: string): string {
   return value
     .toLowerCase()
@@ -25,13 +30,9 @@ function normalize(value: string): string {
     .trim();
 }
 
-function hasAny(text: string, words: string[]): boolean {
-  return words.some((word) => text.includes(normalize(word)));
-}
-
-/* -------------------------------------------------------
-   GREETINGS
-------------------------------------------------------- */
+/* ---------------------------------------
+   Greetings
+---------------------------------------- */
 
 function isGreeting(message: string): boolean {
   const text = normalize(message);
@@ -49,8 +50,8 @@ function isGreeting(message: string): boolean {
     "kaisay ho",
     "how are you",
     "good morning",
-    "good afternoon",
     "good evening",
+    "good afternoon",
   ];
 
   return greetings.some(
@@ -59,42 +60,170 @@ function isGreeting(message: string): boolean {
   );
 }
 
-/* -------------------------------------------------------
-   UNSUPPORTED QUESTIONS
-------------------------------------------------------- */
+/* ---------------------------------------
+   Unsupported Questions
+---------------------------------------- */
 
 function isUnsupported(message: string): boolean {
   const text = normalize(message);
 
-  const unsupported = [
+  const unrelatedPatterns = [
     "write a poem",
     "write me a poem",
-    "poem likho",
     "write a story",
-    "story likho",
+    "write me a story",
     "solve my homework",
-    "homework solve",
+    "homework",
     "who is the president",
     "tell me a joke",
-    "joke sunao",
     "weather today",
-    "today weather",
+    "weather",
     "news today",
+    "latest news",
     "play a game",
-    "game khelo",
     "translate this",
     "coding",
     "programming",
     "javascript",
     "python code",
+    "make an app",
+    "make a website",
+    "math question",
+    "solve this math",
   ];
 
-  return hasAny(text, unsupported);
+  return unrelatedPatterns.some((pattern) =>
+    text.includes(pattern),
+  );
 }
 
-/* -------------------------------------------------------
-   BUDGET
-------------------------------------------------------- */
+/* ---------------------------------------
+   Product Questions
+---------------------------------------- */
+
+function looksLikeProductQuestion(message: string): boolean {
+  const text = normalize(message);
+
+  const productWords = [
+    "product",
+    "products",
+    "item",
+    "items",
+    "price",
+    "price kya",
+    "kitne ka",
+    "kitnay ka",
+    "kitni price",
+    "cost",
+    "rate",
+    "buy",
+    "purchase",
+    "chahiye",
+    "chahta",
+    "chahti",
+    "dikhao",
+    "dikhaye",
+    "dikha do",
+    "show",
+    "available",
+    "availability",
+    "stock",
+    "color",
+    "colour",
+    "size",
+    "budget",
+    "range",
+    "sasta",
+    "sasti",
+    "cheap",
+    "acha",
+    "achi",
+    "best",
+    "recommend",
+    "suggest",
+    "phone",
+    "phones",
+    "mobile",
+    "mobiles",
+    "cover",
+    "case",
+    "gift",
+    "bag",
+    "bags",
+    "shoes",
+    "shoe",
+    "jewelry",
+    "jewellery",
+    "watch",
+    "watches",
+    "speaker",
+    "headphone",
+    "headphones",
+    "earbuds",
+    "charger",
+    "power bank",
+    "dress",
+    "clothes",
+    "shirt",
+    "suit",
+  ];
+
+  return productWords.some((word) => text.includes(word));
+}
+
+/* ---------------------------------------
+   Store Questions
+---------------------------------------- */
+
+function looksLikeStoreQuestion(message: string): boolean {
+  const text = normalize(message);
+
+  const storeWords = [
+    "delivery",
+    "deliver",
+    "delivery kitne",
+    "delivery kab",
+    "kitne din",
+    "cash on delivery",
+    "cod",
+    "payment",
+    "payments",
+    "easypaisa",
+    "jazzcash",
+    "order",
+    "orders",
+    "order kaise",
+    "cancel",
+    "cancellation",
+    "return",
+    "returns",
+    "refund",
+    "exchange",
+    "tracking",
+    "track order",
+    "seller",
+    "nexas",
+    "nexas store",
+    "store",
+    "shipping",
+    "shipping charges",
+    "delivery charges",
+    "secure",
+    "safe",
+    "7 days",
+    "seven days",
+    "contact",
+    "support",
+  ];
+
+  return storeWords.some((word) =>
+    text.includes(word),
+  );
+}
+
+/* ---------------------------------------
+   Budget Extraction
+---------------------------------------- */
 
 function extractBudget(message: string): number | undefined {
   const text = normalize(message);
@@ -103,10 +232,16 @@ function extractBudget(message: string): number | undefined {
     /under\s+(\d+(?:\.\d+)?)/i,
     /below\s+(\d+(?:\.\d+)?)/i,
     /less\s+than\s+(\d+(?:\.\d+)?)/i,
+
     /(\d+(?:\.\d+)?)\s*(?:rs|pkr|rupees)/i,
+    /(?:rs|pkr|rupees)\s*(\d+(?:\.\d+)?)/i,
+
     /(\d+(?:\.\d+)?)\s*(?:tak|tk)/i,
-    /(\d+(?:\.\d+)?)\s*(?:ke andar|kay andar)/i,
-    /(\d+(?:\.\d+)?)\s*(?:mein|may|me)/i,
+    /(\d+(?:\.\d+)?)\s*(?:ke\s+andar|kay\s+andar)/i,
+
+    /(\d+(?:\.\d+)?)\s*(?:range|budget)/i,
+
+    /(\d+(?:\.\d+)?)\s*(?:se\s+kam|say\s+kam)/i,
   ];
 
   for (const pattern of patterns) {
@@ -124,9 +259,9 @@ function extractBudget(message: string): number | undefined {
   return undefined;
 }
 
-/* -------------------------------------------------------
-   CATEGORY
-------------------------------------------------------- */
+/* ---------------------------------------
+   Category Extraction
+---------------------------------------- */
 
 function extractCategory(message: string): string | undefined {
   const text = normalize(message);
@@ -136,7 +271,6 @@ function extractCategory(message: string): string | undefined {
     "electronic",
     "fashion",
     "clothing",
-    "clothes",
     "beauty",
     "accessories",
     "accessory",
@@ -154,8 +288,6 @@ function extractCategory(message: string): string | undefined {
     "bag",
     "gifts",
     "gift",
-    "watches",
-    "watch",
   ];
 
   return categories.find((category) =>
@@ -163,377 +295,21 @@ function extractCategory(message: string): string | undefined {
   );
 }
 
-/* -------------------------------------------------------
-   PRODUCT QUESTIONS
-------------------------------------------------------- */
+/* ---------------------------------------
+   Search Intent
+---------------------------------------- */
 
-function looksLikeProductQuestion(message: string): boolean {
-  const text = normalize(message);
-
-  if (extractBudget(message)) {
-    return true;
-  }
-
-  if (extractCategory(message)) {
-    return true;
-  }
-
-  const productWords = [
-    "product",
-    "products",
-    "item",
-    "items",
-    "price",
-    "kitne ka",
-    "kitnay ka",
-    "kitni price",
-    "cost",
-    "rate",
-    "buy",
-    "purchase",
-    "chahiye",
-    "chahta",
-    "chahti",
-    "dikhao",
-    "dikhaye",
-    "dikha do",
-    "show",
-    "suggest",
-    "suggestion",
-    "recommend",
-    "recommendation",
-    "available",
-    "stock",
-    "color",
-    "colour",
-    "size",
-    "budget",
-    "sasta",
-    "sasti",
-    "cheap",
-    "affordable",
-    "best",
-    "popular",
-    "trending",
-    "latest",
-    "new",
-    "new arrivals",
-    "sale",
-    "discount",
-    "offer",
-    "gift",
-    "cover",
-    "case",
-    "watch",
-    "watches",
-    "shoes",
-    "shoe",
-    "bag",
-    "bags",
-    "jewelry",
-    "jewellery",
-  ];
-
-  return hasAny(text, productWords);
+function shouldSearchProducts(message: string): boolean {
+  return (
+    looksLikeProductQuestion(message) ||
+    Boolean(extractBudget(message)) ||
+    Boolean(extractCategory(message))
+  );
 }
 
-/* -------------------------------------------------------
-   STORE QUESTIONS
-------------------------------------------------------- */
-
-function getStoreAnswer(message: string): string | null {
-  const text = normalize(message);
-
-  /* COD */
-
-  if (
-    hasAny(text, [
-      "cod",
-      "cash on delivery",
-      "cash on dilivery",
-      "cash delivery",
-      "delivery par cash",
-      "parcel par cash",
-      "cash dena",
-    ])
-  ) {
-    return (
-      "Ji haan 😊 Nexas Store par Cash on Delivery (COD) available hai. " +
-      "Aap order place karte waqt COD select kar sakte hain."
-    );
-  }
-
-  /* EasyPaisa */
-
-  if (
-    hasAny(text, [
-      "easypaisa",
-      "easy paisa",
-      "easy pay",
-    ])
-  ) {
-    return "Ji haan 😊 EasyPaisa payment available hai.";
-  }
-
-  /* JazzCash */
-
-  if (
-    hasAny(text, [
-      "jazzcash",
-      "jazz cash",
-    ])
-  ) {
-    return "Ji haan 😊 JazzCash payment available hai.";
-  }
-
-  /* Payment */
-
-  if (
-    hasAny(text, [
-      "payment methods",
-      "payment method",
-      "payment kaise",
-      "pay kaise",
-      "payment options",
-      "online payment",
-      "advance payment",
-      "payment",
-    ])
-  ) {
-    return (
-      "Nexas Store par Cash on Delivery, EasyPaisa aur JazzCash " +
-      "payment methods available hain. 😊"
-    );
-  }
-
-  /* Delivery */
-
-  if (
-    hasAny(text, [
-      "delivery kitne din",
-      "delivery kitnay din",
-      "delivery time",
-      "delivery kab",
-      "parcel kab",
-      "order kab milega",
-      "kab milega",
-      "kitne din mein",
-      "kitnay din mein",
-      "shipping time",
-      "delivery",
-      "deliver",
-      "shipping",
-    ])
-  ) {
-    return (
-      "Nexas Store ki delivery aam tor par 3–5 working days leti hai. " +
-      "Pakistan mein nationwide delivery available hai. 🚚"
-    );
-  }
-
-  /* Delivery Charges */
-
-  if (
-    hasAny(text, [
-      "delivery charges",
-      "delivery charge",
-      "shipping charges",
-      "shipping charge",
-      "delivery fee",
-      "shipping fee",
-      "free delivery",
-      "free shipping",
-    ])
-  ) {
-    return (
-      "Delivery charges order aur location ke mutabiq apply ho sakte hain. " +
-      "Checkout par final delivery charge show hota hai."
-    );
-  }
-
-  /* Pakistan Delivery */
-
-  if (
-    hasAny(text, [
-      "pakistan mein delivery",
-      "pakistan delivery",
-      "nationwide delivery",
-      "whole pakistan",
-      "all pakistan",
-      "karachi delivery",
-      "lahore delivery",
-      "islamabad delivery",
-    ])
-  ) {
-    return "Ji haan 😊 Nexas Store Pakistan mein nationwide delivery provide karta hai.";
-  }
-
-  /* Returns */
-
-  if (
-    hasAny(text, [
-      "return policy",
-      "return kaise",
-      "product return",
-      "return kar sakta",
-      "return kar sakti",
-      "wapis kar",
-      "wapas kar",
-      "exchange",
-      "refund",
-      "7 days return",
-      "7 day return",
-      "return",
-    ])
-  ) {
-    return (
-      "Nexas Store par 7 days return policy available hai. " +
-      "Agar product mein issue ho to policy ke mutabiq 7 din ke andar return request ki ja sakti hai."
-    );
-  }
-
-  /* Damaged / Wrong Product */
-
-  if (
-    hasAny(text, [
-      "damaged product",
-      "product damaged",
-      "wrong product",
-      "galat product",
-      "broken product",
-      "defective product",
-      "defect",
-    ])
-  ) {
-    return (
-      "Agar aapko damaged, defective ya wrong product receive ho, " +
-      "to foran Nexas Store team se Chat with Seller ke through contact karein. 😊"
-    );
-  }
-
-  /* Order placement */
-
-  if (
-    hasAny(text, [
-      "order kaise",
-      "order kaise place",
-      "order place",
-      "order karna",
-      "order karun",
-      "order kaise karun",
-      "purchase kaise",
-    ])
-  ) {
-    return (
-      "Order karne ke liye product open karein, quantity/options select karein " +
-      "aur Buy/Order button par click karein. Phir apni delivery information submit karein. 🛒"
-    );
-  }
-
-  /* Cancel */
-
-  if (
-    hasAny(text, [
-      "order cancel",
-      "cancel order",
-      "order cancellation",
-      "cancel karna",
-      "cancel karun",
-      "order cancel kar sakta",
-      "cancel",
-    ])
-  ) {
-    return (
-      "Order cancellation ke liye seller se jaldi contact karein. " +
-      "Agar order dispatch nahi hua ho to cancellation possible ho sakti hai."
-    );
-  }
-
-  /* Tracking */
-
-  if (
-    hasAny(text, [
-      "track order",
-      "order track",
-      "tracking number",
-      "tracking id",
-      "tracking",
-      "mera order kahan",
-      "order kahan hai",
-      "order status",
-    ])
-  ) {
-    return (
-      "Aap Track Order page par apni Tracking ID enter karke " +
-      "order ka current status check kar sakte hain. 📦"
-    );
-  }
-
-  /* Store information */
-
-  if (
-    hasAny(text, [
-      "nexas store kya",
-      "nexas kya hai",
-      "store kya hai",
-      "tumhara store",
-      "your store",
-      "online store",
-      "nexas store",
-    ])
-  ) {
-    return (
-      "Nexas Store ek premium online shopping store hai jahan " +
-      "different categories ke products, secure ordering, " +
-      "Cash on Delivery aur 7 days return policy available hai. 😊"
-    );
-  }
-
-  /* Product authenticity */
-
-  if (
-    hasAny(text, [
-      "products original",
-      "product original",
-      "original products",
-      "genuine products",
-      "quality",
-      "products safe",
-      "product safe",
-    ])
-  ) {
-    return (
-      "Nexas Store quality-focused shopping experience provide karta hai. " +
-      "Kisi specific product ki details ke liye uska product page check karein " +
-      "ya Chat with Seller se confirm kar sakte hain."
-    );
-  }
-
-  /* Seller / support */
-
-  if (
-    hasAny(text, [
-      "seller",
-      "seller se baat",
-      "seller ko message",
-      "customer support",
-      "support",
-      "help",
-      "contact",
-      "team se baat",
-    ])
-  ) {
-    return (
-      "Bilkul 😊 Aap Chat with Seller ke through Nexas Store team se directly baat kar sakte hain."
-    );
-  }
-
-  return null;
-}
-
-/* -------------------------------------------------------
-   MAIN ENGINE
-------------------------------------------------------- */
+/* ---------------------------------------
+   Main Nexas AI Engine
+---------------------------------------- */
 
 export function runNexasAIEngine(
   request: NexasAIEngineRequest,
@@ -544,32 +320,21 @@ export function runNexasAIEngine(
     return createSellerChatResponse();
   }
 
-  /* 1. Greeting */
-
+  /* Greeting */
   if (isGreeting(message)) {
     return createGreetingResponse(message);
   }
 
-  /* 2. Unsupported */
-
+  /* Unsupported */
   if (isUnsupported(message)) {
     return createUnsupportedResponse();
   }
 
-  /* 3. Store questions FIRST
-     Important: COD/delivery/payment ko
-     product search mein nahi bhejna.
-  */
+  /* ---------------------------------------
+     Product Search
+  ---------------------------------------- */
 
-  const storeAnswer = getStoreAnswer(message);
-
-  if (storeAnswer) {
-    return createStoreResponse(storeAnswer);
-  }
-
-  /* 4. Product search */
-
-  if (looksLikeProductQuestion(message)) {
+  if (shouldSearchProducts(message)) {
     const budget = extractBudget(message);
     const category = extractCategory(message);
 
@@ -584,31 +349,55 @@ export function runNexasAIEngine(
     );
 
     /* No products found */
-
     if (results.length === 0) {
-      return createSellerChatResponse();
+      return createProductResponse(
+        budget
+          ? `Sorry, mujhe Rs ${budget.toLocaleString()} ke andar matching product nahi mila. 😔 Aap apni budget range increase karke try kar sakte hain.`
+          : "Sorry, mujhe is waqt matching product nahi mila. 😔 Aap kisi aur product ya category ka naam try karein.",
+        [],
+      );
     }
 
+    /* Product IDs */
     const productIds = results.map(
       (result) => result.product.id,
     );
 
+    /* Product names */
     const productNames = results
       .slice(0, 3)
       .map((result) => result.product.name)
       .join(", ");
 
+    /* Budget text */
     const budgetText = budget
-      ? ` Rs ${budget} ke andar`
+      ? ` Rs ${budget.toLocaleString()} ke andar`
+      : "";
+
+    /* Category text */
+    const categoryText = category
+      ? ` ${category}`
       : "";
 
     return createProductResponse(
-      `Bilkul! Mujhe ye matching products mile${budgetText}: ${productNames}. 😊`,
+      `Bilkul! Mujhe${categoryText} mein${budgetText} ye matching products mile: ${productNames}. 😊 Neeche products ki picture aur price bhi dekh sakte hain.`,
       productIds,
     );
   }
 
-  /* 5. Unknown */
+  /* ---------------------------------------
+     Store Questions
+  ---------------------------------------- */
+
+  if (looksLikeStoreQuestion(message)) {
+    return createStoreResponse(
+      "Bilkul! Main Nexas Store ke delivery, payment, COD, returns, orders, tracking aur seller-related questions mein help kar sakta hoon. Agar exact information available na hui to aap Chat with Seller se hamari team se directly baat kar sakte hain. 😊",
+    );
+  }
+
+  /* ---------------------------------------
+     Unknown Question
+  ---------------------------------------- */
 
   return createSellerChatResponse();
 }
