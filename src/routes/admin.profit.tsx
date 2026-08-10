@@ -10,16 +10,17 @@ import {
   TrendingUp,
   Trophy,
 } from "lucide-react";
-import { deleteDoc, doc } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useFirebase } from "@/lib/firebase";
 import { useUI } from "@/lib/ui-context";
+
 import {
   aggregateByProduct,
   computeStats,
+  deleteProfit,
   downloadCsv,
   profitsToCsv,
   startOfMonth,
@@ -53,16 +54,24 @@ export const Route = createFileRoute("/admin/profit")({
   component: ProfitDashboard,
 });
 
-type RangeKey = "all" | "today" | "week" | "month" | "custom";
+type RangeKey =
+  | "all"
+  | "today"
+  | "week"
+  | "month"
+  | "custom";
 
-const rs = (n: number) => `Rs ${Math.round(n).toLocaleString()}`;
+const rs = (n: number) =>
+  `Rs ${Math.round(n).toLocaleString()}`;
 
 function ProfitDashboard() {
   const { user, ready, db } = useFirebase();
   const { openAdminLogin } = useUI();
   const { profits, loading } = useProfits();
 
-  const [range, setRange] = useState<RangeKey>("all");
+  const [range, setRange] =
+    useState<RangeKey>("all");
+
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [term, setTerm] = useState("");
@@ -71,18 +80,34 @@ function ProfitDashboard() {
     let rows = profits;
 
     if (range === "today") {
-      rows = rows.filter((r) => r.completedDate >= startOfToday());
+      rows = rows.filter(
+        (r) =>
+          r.completedDate >=
+          startOfToday(),
+      );
     } else if (range === "week") {
-      rows = rows.filter((r) => r.completedDate >= startOfWeek());
+      rows = rows.filter(
+        (r) =>
+          r.completedDate >=
+          startOfWeek(),
+      );
     } else if (range === "month") {
-      rows = rows.filter((r) => r.completedDate >= startOfMonth());
+      rows = rows.filter(
+        (r) =>
+          r.completedDate >=
+          startOfMonth(),
+      );
     } else if (range === "custom") {
       const start = from
-        ? new Date(from + "T00:00:00").getTime()
+        ? new Date(
+            from + "T00:00:00",
+          ).getTime()
         : 0;
 
       const end = to
-        ? new Date(to + "T23:59:59").getTime()
+        ? new Date(
+            to + "T23:59:59",
+          ).getTime()
         : Infinity;
 
       rows = rows.filter(
@@ -92,19 +117,32 @@ function ProfitDashboard() {
       );
     }
 
-    const t = term.trim().toLowerCase();
+    const t =
+      term.trim().toLowerCase();
 
     if (t) {
       rows = rows.filter(
         (r) =>
-          r.productName.toLowerCase().includes(t) ||
-          r.customerName.toLowerCase().includes(t) ||
-          r.orderId.toLowerCase().includes(t),
+          r.productName
+            .toLowerCase()
+            .includes(t) ||
+          r.customerName
+            .toLowerCase()
+            .includes(t) ||
+          r.orderId
+            .toLowerCase()
+            .includes(t),
       );
     }
 
     return rows;
-  }, [profits, range, from, to, term]);
+  }, [
+    profits,
+    range,
+    from,
+    to,
+    term,
+  ]);
 
   const stats = useMemo(
     () => computeStats(profits),
@@ -112,14 +150,18 @@ function ProfitDashboard() {
   );
 
   const byProduct = useMemo(
-    () => aggregateByProduct(filtered),
+    () =>
+      aggregateByProduct(filtered),
     [filtered],
   );
 
   const topSelling = useMemo(
     () =>
       [...byProduct]
-        .sort((a, b) => b.units - a.units)
+        .sort(
+          (a, b) =>
+            b.units - a.units,
+        )
         .slice(0, 5),
     [byProduct],
   );
@@ -127,7 +169,10 @@ function ProfitDashboard() {
   const highestProfit = useMemo(
     () =>
       [...byProduct]
-        .sort((a, b) => b.profit - a.profit)
+        .sort(
+          (a, b) =>
+            b.profit - a.profit,
+        )
         .slice(0, 5),
     [byProduct],
   );
@@ -135,7 +180,10 @@ function ProfitDashboard() {
   const lowestProfit = useMemo(
     () =>
       [...byProduct]
-        .sort((a, b) => a.profit - b.profit)
+        .sort(
+          (a, b) =>
+            a.profit - b.profit,
+        )
         .slice(0, 5),
     [byProduct],
   );
@@ -191,7 +239,10 @@ function ProfitDashboard() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button asChild variant="goldOutline">
+          <Button
+            asChild
+            variant="goldOutline"
+          >
             <Link to="/admin">
               <ArrowLeft className="size-4" />
               Back to Dashboard
@@ -200,7 +251,9 @@ function ProfitDashboard() {
 
           <Button
             variant="gold"
-            disabled={filtered.length === 0}
+            disabled={
+              filtered.length === 0
+            }
             onClick={() =>
               downloadCsv(
                 `nexas-profit-${new Date()
@@ -261,25 +314,31 @@ function ProfitDashboard() {
               ["month", "This Month"],
               ["custom", "Custom Range"],
             ] as [RangeKey, string][]
-          ).map(([key, label]) => (
-            <Button
-              key={key}
-              size="sm"
-              variant={
-                range === key
-                  ? "gold"
-                  : "goldOutline"
-              }
-              onClick={() => setRange(key)}
-            >
-              {label}
-            </Button>
-          ))}
+          ).map(
+            ([key, label]) => (
+              <Button
+                key={key}
+                size="sm"
+                variant={
+                  range === key
+                    ? "gold"
+                    : "goldOutline"
+                }
+                onClick={() =>
+                  setRange(key)
+                }
+              >
+                {label}
+              </Button>
+            ),
+          )}
 
           <Input
             placeholder="Search product, customer or order..."
             value={term}
-            onChange={(e) => setTerm(e.target.value)}
+            onChange={(e) =>
+              setTerm(e.target.value)
+            }
             className="ml-auto w-full sm:max-w-xs"
           />
         </div>
@@ -395,11 +454,13 @@ function ProfitDashboard() {
           icon={
             <Trophy className="size-4 text-primary" />
           }
-          rows={topSelling.map((p) => ({
-            name: p.productName,
-            image: p.productImage,
-            value: `${p.units} sold`,
-          }))}
+          rows={topSelling.map(
+            (p) => ({
+              name: p.productName,
+              image: p.productImage,
+              value: `${p.units} sold`,
+            }),
+          )}
         />
 
         <AnalyticsCard
@@ -407,11 +468,13 @@ function ProfitDashboard() {
           icon={
             <TrendingUp className="size-4 text-green-400" />
           }
-          rows={highestProfit.map((p) => ({
-            name: p.productName,
-            image: p.productImage,
-            value: rs(p.profit),
-          }))}
+          rows={highestProfit.map(
+            (p) => ({
+              name: p.productName,
+              image: p.productImage,
+              value: rs(p.profit),
+            }),
+          )}
         />
 
         <AnalyticsCard
@@ -419,11 +482,13 @@ function ProfitDashboard() {
           icon={
             <TrendingDown className="size-4 text-red-400" />
           }
-          rows={lowestProfit.map((p) => ({
-            name: p.productName,
-            image: p.productImage,
-            value: rs(p.profit),
-          }))}
+          rows={lowestProfit.map(
+            (p) => ({
+              name: p.productName,
+              image: p.productImage,
+              value: rs(p.profit),
+            }),
+          )}
         />
       </div>
     </div>
@@ -466,44 +531,65 @@ function ProfitRow({
   db,
 }: {
   row: ProfitRecord;
-  db: ReturnType<typeof useFirebase>["db"];
+  db: ReturnType<
+    typeof useFirebase
+  >["db"];
 }) {
-  const ref = useRef<HTMLImageElement>(null);
-  const [deleting, setDeleting] = useState(false);
+  const ref =
+    useRef<HTMLImageElement>(null);
 
-  const handleDelete = async () => {
-    const confirmed = window.confirm(
-      `Are you sure you want to delete this profit record?\n\nProduct: ${row.productName}\nProfit: ${rs(row.profitAmount)}`,
-    );
+  const [deleting, setDeleting] =
+    useState(false);
 
-    if (!confirmed) return;
+  const handleDelete =
+    async () => {
+      const confirmed =
+        window.confirm(
+          `Are you sure you want to delete this profit record?\n\nProduct: ${row.productName}\nProfit: ${rs(row.profitAmount)}\n\nThis will NOT delete the original order.`,
+        );
 
-    try {
-      setDeleting(true);
+      if (!confirmed) return;
 
-      await deleteDoc(
-        doc(db, "profits", row.id),
-      );
-    } catch (error) {
-      console.error(
-        "Failed to delete profit:",
-        error,
-      );
+      try {
+        setDeleting(true);
 
-      window.alert(
-        "Failed to delete profit record. Please try again.",
-      );
-    } finally {
-      setDeleting(false);
-    }
-  };
+        await deleteProfit(
+          db,
+          row.id,
+        );
+
+        window.alert(
+          "Profit record deleted successfully.",
+        );
+      } catch (error) {
+        console.error(
+          "DELETE PROFIT ERROR:",
+          error,
+        );
+
+        const message =
+          error instanceof Error
+            ? error.message
+            : String(error);
+
+        window.alert(
+          `Failed to delete profit record.\n\n${message}`,
+        );
+      } finally {
+        setDeleting(false);
+      }
+    };
 
   return (
     <tr className="border-b border-border/40 last:border-0">
+
       <td className="px-4 py-3">
         <img
           ref={ref}
-          src={row.productImage || fallbackImg}
+          src={
+            row.productImage ||
+            fallbackImg
+          }
           alt={row.productName}
           className="size-12 rounded-md object-cover"
           onError={(e) => {
@@ -555,7 +641,9 @@ function ProfitRow({
             <Trash2 className="size-4" />
           )}
 
-          {deleting ? "Deleting..." : "Delete"}
+          {deleting
+            ? "Deleting..."
+            : "Delete"}
         </Button>
       </td>
     </tr>
@@ -577,6 +665,7 @@ function AnalyticsCard({
 }) {
   return (
     <div className="rounded-xl border border-border/60 bg-card p-4">
+
       <div className="flex items-center gap-2">
         {icon}
 
@@ -597,13 +686,17 @@ function AnalyticsCard({
               className="flex items-center gap-2 text-sm"
             >
               <img
-                src={r.image || fallbackImg}
+                src={
+                  r.image ||
+                  fallbackImg
+                }
                 alt=""
                 className="size-9 shrink-0 rounded-md object-cover"
                 onError={(e) => {
                   (
                     e.currentTarget as HTMLImageElement
-                  ).src = fallbackImg;
+                  ).src =
+                    fallbackImg;
                 }}
               />
 
