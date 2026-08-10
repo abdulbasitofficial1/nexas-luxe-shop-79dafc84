@@ -1,0 +1,162 @@
+/** A configurable product option, e.g. { name: "Color", values: ["Black", "White"] }. */
+export interface ProductOption {
+  name: string;
+  values: string[];
+}
+
+/** A single option value chosen by the customer, e.g. { name: "Color", value: "Black" }. */
+export interface SelectedOption {
+  name: string;
+  value: string;
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  price: number;
+  image: string;
+  category: string;
+  description: string;
+
+  // Multiple Images (first image is the main thumbnail)
+  images?: string[];
+
+  // Dynamic Options
+  options?: ProductOption[];
+
+  // Optional catalog metadata (used by bulk CSV imports)
+  sku?: string;
+  shortDescription?: string;
+  salePrice?: number;
+  stock?: number;
+  tags?: string[];
+
+  createdAt?: number;
+}
+
+
+export type OrderStatus =
+  | "Pending"
+  | "Processing"
+  | "Out for Delivery"
+  | "2nd Delivery Attempt"
+  | "Completed"
+  | "Cancelled";
+
+export interface Order {
+  id: string;
+  trackingId?: string;
+  customerName: string;
+  phoneNumber: string;
+  address: string;
+  quantity: number;
+  paymentMethod: string;
+  transactionId: string;
+  codFee: number;
+  deliveryCharge: number;
+  subtotal: number;
+  totalAmount: number;
+  paymentVerified: boolean;
+  /** Firestore product document id — required for the review system. */
+  productId?: string;
+  productName: string;
+  productPrice: number;
+  productImage?: string;
+
+  selectedOptions?: SelectedOption[];
+
+  trackingNumber?: string;
+  courierCompany?: string;
+
+  cancelReason?: string;
+  cancelledAt?: number;
+
+
+  orderStatus: OrderStatus;
+  userId?: string;
+  userEmail?: string;
+  createdAt?: number;
+}
+export interface UserProfile {
+  uid: string;
+  name: string;
+  email: string;
+  photoURL?: string;
+  createdAt?: number;
+}
+
+export interface Address {
+  id: string;
+  label: string;
+  fullName: string;
+  phone: string;
+  line1: string;
+  city: string;
+  createdAt?: number;
+}
+
+export interface WishlistItem {
+  id: string; // productId
+  name: string;
+  price: number;
+  image: string;
+  addedAt?: number;
+}
+
+export interface CartItem extends Product {
+  quantity: number;
+}
+
+export interface Review {
+  id: string;
+  productId?: string;
+  productName?: string;
+  orderId?: string;
+  userId?: string;
+  customerName: string;
+  rating: number;
+  message: string;
+  images?: string[];
+  image?: string;
+  approved: boolean;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
+
+export const PAYMENT_METHODS = [
+  "EasyPaisa",
+  "JazzCash",
+  "Cash on Delivery",
+] as const;
+
+export const ORDER_STATUSES: OrderStatus[] = [
+  "Pending",
+  "Processing",
+  "Out for Delivery",
+  "2nd Delivery Attempt",
+  "Completed",
+  "Cancelled",
+];
+
+/** Delivery/handling fee applied only to Cash on Delivery orders. */
+export const COD_FEE = 60;
+
+/** Flat nationwide delivery charge (Rs). */
+export const DELIVERY_CHARGE = 150;
+
+/** Estimated delivery time shown to customers. */
+export const DELIVERY_TIME = "3–5 Working Days";
+
+/** Payment account numbers shown to customers at checkout. */
+export const PAYMENT_ACCOUNTS: Record<string, string> = {
+  EasyPaisa: "03225305296",
+  JazzCash: "03219965754",
+};
+
+/** Payment methods that require the customer to enter a Transaction ID. */
+export const TXN_PAYMENT_METHODS = [
+  "EasyPaisa",
+  "JazzCash",
+] as const;
+
