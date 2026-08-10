@@ -16,7 +16,6 @@ import { CartProvider } from "@/lib/cart-context";
 import { UIProvider } from "@/lib/ui-context";
 import { EventProvider } from "@/lib/event-context";
 import { EventPreviewBar } from "@/components/nexas/event/EventPreviewBar";
-import { FloatingCountdown } from "@/components/nexas/event/FloatingCountdown";
 import { SaleLaunchOverlay } from "@/components/nexas/event/SaleLaunchOverlay";
 import { Navbar } from "@/components/nexas/Navbar";
 import { Footer } from "@/components/nexas/Footer";
@@ -167,7 +166,7 @@ function RootComponent() {
               </div>
 
               <BottomNav />
-              <FloatingCountdown />
+              
               <SaleLaunchOverlay />
 
               {/* Nexas AI — customer website */}

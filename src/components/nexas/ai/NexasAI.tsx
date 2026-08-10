@@ -2,11 +2,13 @@ import { useState } from "react";
 import { MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useProducts } from "@/lib/store";
+import { useSellerChatFromAI } from "@/hooks/useSellerChatFromAI";
 import { AIAssistantPanel } from "./AIAssistantPanel";
 
 export function NexasAI() {
   const { products, loading } = useProducts();
   const [open, setOpen] = useState(false);
+  const { onChatWithSeller, chatModal } = useSellerChatFromAI({ products });
 
   if (loading) {
     return null;
@@ -18,7 +20,10 @@ export function NexasAI() {
         open={open}
         onOpenChange={setOpen}
         products={products}
+        onChatWithSeller={onChatWithSeller}
       />
+
+      {chatModal}
 
       {!open && (
         <Button
@@ -40,7 +45,6 @@ export function NexasAI() {
         >
           <span className="relative flex items-center justify-center">
             <MessageCircle className="size-6 sm:size-7" />
-
             <span
               className="
                 absolute -right-1 -top-1

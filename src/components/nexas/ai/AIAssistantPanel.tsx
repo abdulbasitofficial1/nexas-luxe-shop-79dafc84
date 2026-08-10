@@ -1,15 +1,33 @@
-import { useEffect, useRef, useState } from "react";
-import { Bot, MessageCircle, Send, Sparkles, UserRound, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "@tanstack/react-router";
+import {
+  Bot,
+  MessageCircle,
+  Send,
+  ShoppingCart,
+  Sparkles,
+  UserRound,
+  X,
+} from "lucide-react";
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Product } from "@/lib/types";
 import { useNexasAI } from "@/hooks/useNexasAI";
+import { useCart } from "@/lib/cart-context";
+import { getRecommendedProducts } from "@/lib/ai/assistant";
+import {
+  formatProductPrice,
+  getProductImageUrls,
+} from "@/lib/product-display";
+import { AIProductImage } from "./AIProductImage";
 
 interface AIAssistantPanelProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   products: Product[];
-  onChatWithSeller?: () => void;
+  onChatWithSeller?: (productId?: string) => void;
   currentProductId?: string;
 }
 
@@ -20,38 +38,62 @@ export function AIAssistantPanel({
   onChatWithSeller,
   currentProductId,
 }: AIAssistantPanelProps) {
-  const { messages, loading, sendMessage, clearConversation } =
-    useNexasAI(products);
+  const {
+    messages,
+    loading,
+    lastResponse,
+    sendMessage,
+    clearConversation,
+  } = useNexasAI(products);
 
+  const { addItem } = useCart();
   const [text, setText] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const recommendedProducts = useMemo(() => {
+    if (!lastResponse?.productIds.length) return [];
+    return getRecommendedProducts(lastResponse, products);
+  }, [lastResponse, products]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({
       behavior: "smooth",
       block: "end",
     });
-  }, [messages.length, loading]);
+  }, [messages.length, loading, lastResponse]);
 
   if (!open) return null;
 
   const submit = async () => {
     const message = text.trim();
-
     if (!message || loading) return;
 
     setText("");
 
-    const result = await sendMessage(
-      message,
-      currentProductId
-    );
+    const result = await sendMessage(message, currentProductId);
 
     if (result?.response.sellerChatRequired) {
-      // The seller button is intentionally handled by the
-      // parent component so the existing ChatModal remains
-      // completely separate from Nexas AI.
+      openSellerChat();
     }
+  };
+
+  const openSellerChat = () => {
+    if (!onChatWithSeller) {
+      toast.error("Seller chat is unavailable right now.");
+      return;
+    }
+
+    const productId =
+      currentProductId ??
+      lastResponse?.productIds[0] ??
+      recommendedProducts[0]?.id;
+
+    onChatWithSeller(productId);
+  };
+
+  const handleAddToCart = (product: Product) => {
+    addItem(product);
+    toast.success(`${product.name} added to cart`);
   };
 
   return (
@@ -78,12 +120,10 @@ export function AIAssistantPanel({
               <h2 className="font-display text-base font-semibold">
                 Nexas AI
               </h2>
-
               <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600">
                 Assistant
               </span>
             </div>
-
             <p className="truncate text-xs text-muted-foreground">
               Your Nexas Store shopping assistant
             </p>
@@ -101,8 +141,7 @@ export function AIAssistantPanel({
         </div>
 
         <p className="mt-3 text-xs leading-5 text-muted-foreground">
-          Hi! I'm Nexas AI Assistant — mujhe Abdul Basit ne
-          develop kiya hai. 😊
+          Hi! I'm Nexas AI Assistant — mujhe Abdul Basit ne develop kiya hai. 😊
         </p>
       </div>
 
@@ -119,9 +158,8 @@ export function AIAssistantPanel({
             </h3>
 
             <p className="mt-2 max-w-[280px] text-sm leading-6 text-muted-foreground">
-              Products dhoondhne, prices check karne, ya
-              Nexas Store ke baare mein poochne ke liye message
-              karein.
+              Products dhoondhne, prices check karne, ya Nexas Store ke baare
+              mein poochne ke liye message karein.
             </p>
 
             <div className="mt-5 flex flex-wrap justify-center gap-2">
@@ -134,9 +172,7 @@ export function AIAssistantPanel({
                   key={suggestion}
                   type="button"
                   disabled={loading}
-                  onClick={() => {
-                    setText(suggestion);
-                  }}
+                  onClick={() => setText(suggestion)}
                   className="rounded-full border border-border/70 bg-background px-3 py-2 text-xs transition hover:bg-secondary"
                 >
                   {suggestion}
@@ -186,18 +222,158 @@ export function AIAssistantPanel({
                 <div className="flex size-7 shrink-0 items-center justify-center rounded-xl bg-primary/10">
                   <Bot className="size-4 text-primary" />
                 </div>
-
                 <div className="flex items-center gap-1 rounded-2xl rounded-bl-md bg-secondary px-4 py-3">
                   {[0, 150, 300].map((delay) => (
                     <span
                       key={delay}
                       className="size-1.5 animate-bounce rounded-full bg-muted-foreground"
-                      style={{
-                        animationDelay: `${delay}ms`,
-                      }}
+                      style={{ animationDelay: `${delay}ms` }}
                     />
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Product recommendations */}
+            {!loading &&
+              lastResponse &&
+              lastResponse.productIds.length > 0 && (
+                <div className="mt-2 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">✨</span>
+                    <p className="text-xs font-semibold text-primary">
+                      Recommended Products
+                    </p>
+                  </div>
+
+                  {recommendedProducts.length > 0 ? (
+                    <div className="space-y-3">
+                      {recommendedProducts.map((product) => {
+                        const productImages =
+                          getProductImageUrls(product);
+
+                        return (
+                          <div
+                            key={product.id}
+                            className="
+                              overflow-hidden rounded-xl
+                              border border-border/60 bg-card
+                              transition-all hover:border-primary/40
+                            "
+                          >
+                            <div className="flex gap-3 p-2.5">
+                              <Link
+                                to="/products/$productId"
+                                params={{ productId: product.id }}
+                                className="
+                                  relative size-24 shrink-0
+                                  overflow-hidden rounded-lg bg-secondary
+                                "
+                              >
+                                <AIProductImage product={product} />
+
+                                {product.category && (
+                                  <span
+                                    className="
+                                      absolute bottom-1 left-1
+                                      rounded-full bg-black/80
+                                      px-1.5 py-0.5 text-[8px]
+                                      font-medium text-primary
+                                    "
+                                  >
+                                    {product.category}
+                                  </span>
+                                )}
+                              </Link>
+
+                              <div className="min-w-0 flex-1">
+                                <Link
+                                  to="/products/$productId"
+                                  params={{ productId: product.id }}
+                                >
+                                  <p className="line-clamp-2 text-sm font-semibold transition-colors hover:text-primary">
+                                    {product.name}
+                                  </p>
+                                </Link>
+
+                                {product.category && (
+                                  <p className="mt-1 text-xs text-muted-foreground">
+                                    {product.category}
+                                  </p>
+                                )}
+
+                                <p className="mt-1 text-base font-bold text-primary">
+                                  {formatProductPrice(product.price)}
+                                </p>
+
+                                <div className="mt-2 flex gap-1.5">
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="gold"
+                                    className="h-7 flex-1 px-2 text-[10px]"
+                                    onClick={() =>
+                                      handleAddToCart(product)
+                                    }
+                                  >
+                                    <ShoppingCart className="mr-1 size-3" />
+                                    Add
+                                  </Button>
+
+                                  <Button
+                                    asChild
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 flex-1 px-2 text-[10px]"
+                                  >
+                                    <Link
+                                      to="/products/$productId"
+                                      params={{
+                                        productId: product.id,
+                                      }}
+                                    >
+                                      View
+                                    </Link>
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+
+                            {productImages.length > 1 && (
+                              <div className="border-t border-border/40 px-2.5 py-1.5 text-[9px] text-muted-foreground">
+                                📷 {productImages.length} product images
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-border/60 bg-secondary/40 p-3 text-xs text-muted-foreground">
+                      Products were found, but they are no longer available
+                      in the current catalog.
+                    </div>
+                  )}
+                </div>
+              )}
+
+            {/* Seller chat prompt */}
+            {!loading && lastResponse?.sellerChatRequired && (
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
+                <p className="mb-2 text-xs text-muted-foreground">
+                  Need more help? Talk directly with our seller.
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="gold"
+                  onClick={openSellerChat}
+                  className="gap-2"
+                >
+                  <MessageCircle className="size-4" />
+                  Chat with Seller
+                </Button>
               </div>
             )}
 
@@ -210,7 +386,7 @@ export function AIAssistantPanel({
       <div className="border-t border-border/60 px-3 pt-2">
         <button
           type="button"
-          onClick={onChatWithSeller}
+          onClick={openSellerChat}
           className="flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs text-muted-foreground transition hover:bg-secondary hover:text-foreground"
         >
           <MessageCircle className="size-3.5" />

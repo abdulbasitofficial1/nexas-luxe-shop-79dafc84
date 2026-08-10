@@ -1,21 +1,24 @@
 import { useState } from "react";
-import { Bot, X } from "lucide-react";
+import { MessageCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Product } from "@/lib/types";
+import { useSellerChatFromAI } from "@/hooks/useSellerChatFromAI";
 import { AIAssistantPanel } from "./AIAssistantPanel";
 
 interface AIAssistantWidgetProps {
   products: Product[];
-  onChatWithSeller?: () => void;
   currentProductId?: string;
 }
 
 export function AIAssistantWidget({
   products,
-  onChatWithSeller,
   currentProductId,
 }: AIAssistantWidgetProps) {
   const [open, setOpen] = useState(false);
+  const { onChatWithSeller, chatModal } = useSellerChatFromAI({
+    products,
+    currentProductId,
+  });
 
   return (
     <>
@@ -26,6 +29,8 @@ export function AIAssistantWidget({
         onChatWithSeller={onChatWithSeller}
         currentProductId={currentProductId}
       />
+
+      {chatModal}
 
       {!open && (
         <Button
@@ -46,8 +51,7 @@ export function AIAssistantWidget({
           "
         >
           <span className="relative flex items-center justify-center">
-            <Bot className="size-6 sm:size-7" />
-
+            <MessageCircle className="size-6 sm:size-7" />
             <span
               className="
                 absolute -right-1 -top-1
