@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as TrackOrderRouteImport } from './routes/track-order'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminEventsRouteImport } from './routes/admin.events'
 import { Route as AdminProfitRouteImport } from './routes/admin.profit'
@@ -37,6 +38,11 @@ const CartRoute = CartRouteImport.update({
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TrackOrderRoute = TrackOrderRouteImport.update({
+  id: '/track-order',
+  path: '/track-order',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
@@ -70,6 +76,7 @@ export interface FileRoutesByFullPath {
   '/account': typeof AccountRoute
   '/cart': typeof CartRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/track-order': typeof TrackOrderRoute
   '/admin/events': typeof AdminEventsRoute
   '/admin/profit': typeof AdminProfitRoute
   '/products/$productId': typeof ProductsProductIdRoute
@@ -81,6 +88,7 @@ export interface FileRoutesByTo {
   '/account': typeof AccountRoute
   '/cart': typeof CartRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/track-order': typeof TrackOrderRoute
   '/admin/events': typeof AdminEventsRoute
   '/admin/profit': typeof AdminProfitRoute
   '/products/$productId': typeof ProductsProductIdRoute
@@ -93,6 +101,7 @@ export interface FileRoutesById {
   '/account': typeof AccountRoute
   '/cart': typeof CartRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/track-order': typeof TrackOrderRoute
   '/admin/events': typeof AdminEventsRoute
   '/admin/profit': typeof AdminProfitRoute
   '/products/$productId': typeof ProductsProductIdRoute
@@ -106,6 +115,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/cart'
     | '/sitemap.xml'
+    | '/track-order'
     | '/admin/events'
     | '/admin/profit'
     | '/products/$productId'
@@ -117,6 +127,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/cart'
     | '/sitemap.xml'
+    | '/track-order'
     | '/admin/events'
     | '/admin/profit'
     | '/products/$productId'
@@ -128,6 +139,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/cart'
     | '/sitemap.xml'
+    | '/track-order'
     | '/admin/events'
     | '/admin/profit'
     | '/products/$productId'
@@ -140,6 +152,7 @@ export interface RootRouteChildren {
   AccountRoute: typeof AccountRoute
   CartRoute: typeof CartRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  TrackOrderRoute: typeof TrackOrderRoute
   AdminEventsRoute: typeof AdminEventsRoute
   AdminProfitRoute: typeof AdminProfitRoute
   ProductsProductIdRoute: typeof ProductsProductIdRoute
@@ -175,6 +188,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/track-order': {
+      id: '/track-order'
+      path: '/track-order'
+      fullPath: '/track-order'
+      preLoaderRoute: typeof TrackOrderRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/': {
@@ -220,6 +240,7 @@ const rootRouteChildren: RootRouteChildren = {
   AccountRoute: AccountRoute,
   CartRoute: CartRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  TrackOrderRoute: TrackOrderRoute,
   AdminEventsRoute: AdminEventsRoute,
   AdminProfitRoute: AdminProfitRoute,
   ProductsProductIdRoute: ProductsProductIdRoute,
