@@ -307,20 +307,27 @@ function OrdersTab() {
   const { orders, loading } = useUserOrders();
   const { db } = useFirebase();
   const { reviews: myReviews } = useMyReviews();
+
   const [reviewOpen, setReviewOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 60000);
+    const timer = setInterval(() => {
+      setNow(Date.now());
+    }, 60000);
+
     return () => clearInterval(timer);
   }, []);
 
   const reviewForOrder = (orderId: string) =>
     myReviews.find((r) => r.orderId === orderId) ?? null;
 
-  if (loading) return <LoaderBlock />;
-  if (!orders.length)
+  if (loading) {
+    return <LoaderBlock />;
+  }
+
+  if (!orders.length) {
     return (
       <EmptyBlock
         icon={<Package className="size-8" />}
@@ -328,39 +335,82 @@ function OrdersTab() {
         hint="Your placed orders will appear here."
       />
     );
+  }
 
-  const existing = selectedOrder ? reviewForOrder(selectedOrder.id) : null;
+  const existing = selectedOrder
+    ? reviewForOrder(selectedOrder.id)
+    : null;
 
   return (
     <>
       <div className="space-y-3">
         {orders.map((o) => {
           const review = reviewForOrder(o.id);
+
           return (
             <Card key={o.id}>
               <CardContent className="flex flex-col gap-4 p-4 sm:flex-row">
+                {/* Product Image */}
                 {o.productImage ? (
-                  <img src={o.productImage} alt={o.productName} className="size-24 rounded-lg object-cover" />
+                  <img
+                    src={o.productImage}
+                    alt={o.productName}
+                    className="size-24 rounded-lg object-cover"
+                  />
                 ) : (
                   <div className="flex size-24 items-center justify-center rounded-lg bg-secondary/50 text-muted-foreground">
                     <Package className="size-6" />
                   </div>
                 )}
+
+                {/* Order Details */}
                 <div className="flex flex-1 flex-col gap-1">
+                  {/* Product Name + Status */}
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-semibold">{o.productName}</h3>
-                    <Badge variant={o.orderStatus === "Completed" ? "default" : "secondary"}>
+                    <h3 className="font-semibold">
+                      {o.productName}
+                    </h3>
+
+                    <Badge
+                      variant={
+                        o.orderStatus === "Completed"
+                          ? "default"
+                          : "secondary"
+                      }
+                    >
                       {o.orderStatus}
                     </Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground">Quantity: {o.quantity}</p>
+
+                  {/* Tracking ID */}
+                  <div className="mt-1 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Tracking ID
+                    </p>
+
+                    <p className="text-base font-bold text-primary">
+                      {o.trackingId || "Not available"}
+                    </p>
+                  </div>
+
+                  {/* Quantity */}
                   <p className="text-sm text-muted-foreground">
-                    {o.createdAt ? new Date(o.createdAt).toLocaleString() : ""}
+                    Quantity: {o.quantity}
                   </p>
+
+                  {/* Order Date */}
+                  <p className="text-sm text-muted-foreground">
+                    {o.createdAt
+                      ? new Date(o.createdAt).toLocaleString()
+                      : ""}
+                  </p>
+
+                  {/* Total */}
                   <p className="mt-1 font-bold text-gold-gradient">
                     Rs {o.totalAmount.toLocaleString()}
                   </p>
 
+                  {/* Review */}
                   {o.orderStatus === "Completed" && (
                     <div className="mt-1 flex flex-wrap items-center gap-2">
                       <Button
@@ -373,11 +423,13 @@ function OrdersTab() {
                       >
                         {review ? "Edit Your Review" : "Give Review"}
                       </Button>
+
                       {review && (
                         <span className="text-xs text-muted-foreground">
                           You rated {review.rating}★
                         </span>
                       )}
+
                       {!review && !o.productId && (
                         <span className="text-xs text-muted-foreground">
                           Older order — reviews unavailable
@@ -386,6 +438,7 @@ function OrdersTab() {
                     </div>
                   )}
 
+                  {/* Cancel Order */}
                   {o.orderStatus !== "Cancelled" &&
                     o.orderStatus !== "Completed" &&
                     o.createdAt &&
@@ -396,14 +449,31 @@ function OrdersTab() {
                         className="mt-1 w-fit"
                         onClick={async () => {
                           if (!db) return;
-                          const reason = prompt("Why do you want to cancel this order?");
+
+                          const reason = prompt(
+                            "Why do you want to cancel this order?"
+                          );
+
                           if (!reason) return;
-                          await updateDoc(doc(db, "orders", o.id), {
-                            orderStatus: "Cancelled",
-                            cancelReason: reason,
-                            cancelledAt: Date.now(),
-                          });
-                          toast.success("Order cancelled");
+
+                          try {
+                            await updateDoc(
+                              doc(db, "orders", o.id),
+                              {
+                                orderStatus: "Cancelled",
+                                cancelReason: reason,
+                                cancelledAt: Date.now(),
+                              }
+                            );
+
+                            toast.success("Order cancelled");
+                          } catch (error) {
+                            toast.error(
+                              error instanceof Error
+                                ? error.message
+                                : "Failed to cancel order"
+                            );
+                          }
                         }}
                       >
                         Cancel Order
@@ -416,6 +486,7 @@ function OrdersTab() {
         })}
       </div>
 
+      {/* Review Dialog */}
       <ReviewDialog
         order={selectedOrder}
         existing={existing}
