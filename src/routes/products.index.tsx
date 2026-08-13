@@ -88,17 +88,37 @@ function Products() {
 
   /* -------------------- Categories -------------------- */
 
-  const categories = useMemo(
-    () =>
-      Array.from(
+  const categories = useMemo(() => {
+    const term = (search ?? "").toLowerCase().trim();
+  
+    // Normal shop page: show all categories
+    if (!term) {
+      return Array.from(
         new Set(
           products
             .map((p) => p.category)
             .filter(Boolean),
         ),
-      ).sort(),
-    [products],
-  );
+      ).sort();
+    }
+  
+    // Search page: show only categories related to search results
+    return Array.from(
+      new Set(
+        products
+          .filter((p) => {
+            const matchesSearch =
+              p.name.toLowerCase().includes(term) ||
+              p.description.toLowerCase().includes(term) ||
+              p.category.toLowerCase().includes(term);
+  
+            return matchesSearch;
+          })
+          .map((p) => p.category)
+          .filter(Boolean),
+      ),
+    ).sort();
+  }, [products, search]);
 
   /* -------------------- Search -------------------- */
 
