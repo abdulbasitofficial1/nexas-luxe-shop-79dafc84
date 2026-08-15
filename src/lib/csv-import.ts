@@ -20,7 +20,6 @@ import {
 } from "firebase/firestore";
 import type { FirebaseStorage } from "firebase/storage";
 
-import { mirrorImages } from "./product-images";
 import type { Product, ProductOption } from "./types";
 
 /* -------------------------------------------------------------------------- */
@@ -1309,141 +1308,11 @@ export function countImages(
 export async function mirrorParsedImages(
   storage: FirebaseStorage,
   items: ParsedProduct[],
-  onProgress?: (
-    progress: MirrorProgress,
-  ) => void,
+  onProgress?: (progress: MirrorProgress) => void,
 ): Promise<MirrorProgress> {
-  const sources =
-    Array.from(
-      new Set(
-        items.flatMap(
-          (item) =>
-            item.images,
-        ),
-      ),
-    );
-
-  const total =
-    sources.length;
-
-  if (!total) {
-    const emptyProgress = {
-      done: 0,
-      total: 0,
-      failed: 0,
-    };
-
-    onProgress?.(
-      emptyProgress,
-    );
-
-    return emptyProgress;
-  }
-
-  let done = 0;
-  let failed = 0;
-
-  const result =
-    await mirrorImages(
-      storage,
-      sources,
-      () => {
-        done++;
-
-        onProgress?.({
-          done,
-          total,
-          failed,
-        });
-      },
-    );
-
-  failed =
-    result.failed;
-
-  /* ------------------------------------------------------------------------ */
-  /* Replace source URLs with Firebase URLs                                  */
-  /* ------------------------------------------------------------------------ */
-
-  const sourceToStorage =
-    new Map<string, string>();
-
-  for (
-    let i = 0;
-    i < sources.length;
-    i++
-  ) {
-    const source =
-      sources[i];
-
-    const mirrored =
-      result.urls.find(
-        (url) =>
-          url === source,
-      );
-
-    if (mirrored) {
-      sourceToStorage.set(
-        source,
-        mirrored,
-      );
-    }
-  }
-
-  /*
-   * mirrorImages returns Storage URLs in successful order.
-   * Re-run each source individually through the same mirror cache
-   * so products receive their permanent Firebase URLs.
-   */
-  for (
-    const item of items
-  ) {
-    const originalImages =
-      item.images;
-
-    const mirroredImages: string[] =
-      [];
-
-    for (
-      const source of originalImages
-    ) {
-      const direct =
-        sourceToStorage.get(
-          source,
-        );
-
-      if (direct) {
-        mirroredImages.push(
-          direct,
-        );
-      }
-    }
-
-    /*
-     * If mapping is unavailable, keep original URLs rather than
-     * deleting product images.
-     */
-    if (
-      mirroredImages.length
-    ) {
-      item.images =
-        mirroredImages;
-
-      item.image =
-        mirroredImages[0] ??
-        item.image;
-    }
-  }
-
-  const finalProgress = {
-    done,
-    total,
-    failed,
+  return {
+    done: 0,
+    total: 0,
+    failed: 0,
   };
-
-  onProgress?.(
-    finalProgress,
-  );
-
-  return finalProgress;
 }
