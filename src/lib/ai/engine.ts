@@ -29,18 +29,16 @@ function normalize(value: string): string {
   return value
     .toLowerCase()
     .normalize("NFKD")
-    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/[^\p{L}\p{N}\s-]/gu, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
 // =========================================================
-// GREETINGS
+// GREETING
 // =========================================================
 
-function isGreeting(
-  message: string,
-): boolean {
+function isGreeting(message: string): boolean {
   const text = normalize(message);
 
   const greetings = [
@@ -51,10 +49,11 @@ function isGreeting(
     "aoa",
     "assalam o alaikum",
     "assalamualaikum",
-    "assalamualaikum",
+    "asalamualaikum",
     "kya haal",
     "kaise ho",
     "kaisay ho",
+    "kaisa ho",
     "how are you",
     "good morning",
     "good evening",
@@ -64,7 +63,7 @@ function isGreeting(
   return greetings.some(
     (greeting) =>
       text === greeting ||
-      text.startsWith(greeting + " "),
+      text.startsWith(`${greeting} `),
   );
 }
 
@@ -72,32 +71,30 @@ function isGreeting(
 // MORE PRODUCTS
 // =========================================================
 
-function isMoreProductsRequest(
-  message: string,
-): boolean {
+function isMoreProductsRequest(message: string): boolean {
   const text = normalize(message);
 
   const patterns = [
     "aur dikhao",
     "or dikhao",
+    "awr dikhao",
     "aur dikhado",
     "or dikhado",
+    "aur dikha do",
+    "or dikha do",
     "aur products",
     "or products",
     "more products",
     "show more",
     "show me more",
-    "more",
-    "next",
+    "more options",
+    "aur options",
     "next products",
+    "next",
     "aglay products",
     "agle products",
     "baqi products",
     "baki products",
-    "aur options",
-    "more options",
-    "aur dikha do",
-    "or dikha do",
   ];
 
   return patterns.some(
@@ -111,9 +108,7 @@ function isMoreProductsRequest(
 // UNSUPPORTED
 // =========================================================
 
-function isUnsupported(
-  message: string,
-): boolean {
+function isUnsupported(message: string): boolean {
   const text = normalize(message);
 
   const unrelatedPatterns = [
@@ -150,9 +145,7 @@ function isUnsupported(
 // PRODUCT QUESTION
 // =========================================================
 
-function looksLikeProductQuestion(
-  message: string,
-): boolean {
+function looksLikeProductQuestion(message: string): boolean {
   const text = normalize(message);
 
   const productWords = [
@@ -173,6 +166,7 @@ function looksLikeProductQuestion(
     "chahta",
     "chahti",
     "dikhao",
+    "dikha",
     "dikhaye",
     "dikha do",
     "show",
@@ -191,6 +185,7 @@ function looksLikeProductQuestion(
     "achi",
     "best",
     "recommend",
+    "recommendation",
     "suggest",
     "phone",
     "phones",
@@ -228,21 +223,12 @@ function looksLikeProductQuestion(
 // STORE QUESTIONS
 // =========================================================
 
-function looksLikeStoreQuestion(
-  message: string,
-): boolean {
+function looksLikeStoreQuestion(message: string): boolean {
   const text = normalize(message);
 
   const storeWords = [
-    // -----------------------------------------------------
-    // Existing store questions
-    // -----------------------------------------------------
-
     "delivery",
     "deliver",
-    "delivery kitne",
-    "delivery kab",
-    "kitne din",
     "cash on delivery",
     "cod",
     "payment",
@@ -251,7 +237,6 @@ function looksLikeStoreQuestion(
     "jazzcash",
     "order",
     "orders",
-    "order kaise",
     "cancel",
     "cancellation",
     "return",
@@ -274,10 +259,6 @@ function looksLikeStoreQuestion(
     "contact",
     "support",
 
-    // -----------------------------------------------------
-    // Store information
-    // -----------------------------------------------------
-
     "store kya hai",
     "store kis cheez ka hai",
     "store par kya milta hai",
@@ -290,10 +271,6 @@ function looksLikeStoreQuestion(
     "kaun se products hain",
     "kis type ke products hain",
 
-    // -----------------------------------------------------
-    // Store location
-    // -----------------------------------------------------
-
     "store kahan hai",
     "store kaha hai",
     "shop kahan hai",
@@ -304,39 +281,15 @@ function looksLikeStoreQuestion(
     "address",
     "store address",
     "shop address",
-    "physical store",
-    "physical shop",
-    "physical location",
-    "visit store",
-    "store visit",
-    "shop visit",
-
-    // -----------------------------------------------------
-    // Store timing
-    // -----------------------------------------------------
 
     "store timing",
     "shop timing",
     "store timings",
     "shop timings",
-    "store kab open",
-    "shop kab open",
-    "store kab band",
-    "shop kab band",
     "opening time",
     "closing time",
     "open kab",
     "band kab",
-    "kis time open",
-    "kis waqt open",
-    "sunday open",
-    "sunday ko open",
-    "weekend open",
-    "weekend par open",
-
-    // -----------------------------------------------------
-    // Contact / customer support
-    // -----------------------------------------------------
 
     "contact number",
     "phone number",
@@ -349,65 +302,28 @@ function looksLikeStoreQuestion(
     "support number",
     "whatsapp",
     "whatsapp number",
-    "whatsapp par",
     "seller se baat",
-    "human agent",
     "human support",
-    "agent se baat",
-    "representative",
-    "representative se baat",
-    "team se baat",
-
-    // -----------------------------------------------------
-    // Complaints
-    // -----------------------------------------------------
 
     "complaint",
     "complain",
     "shikayat",
-    "issue report",
-    "problem report",
-    "complaint kaise",
-    "complaint kahan",
-    "issue kahan",
-    "problem kahan",
+    "issue",
+    "problem",
     "masla",
-    "masla hai",
-    "issue hai",
-    "problem hai",
-
-    // -----------------------------------------------------
-    // Delivery extra questions
-    // -----------------------------------------------------
 
     "free delivery",
     "free shipping",
-    "shipping free",
-    "delivery free",
     "delivery available",
-    "delivery kin cities",
-    "kin cities mein delivery",
-    "kin cities me delivery",
-    "which cities delivery",
-    "remote area",
-    "remote areas",
     "same day delivery",
     "urgent delivery",
     "fast delivery",
     "delivery late",
-    "delivery late ho",
     "delivery delay",
-    "delivery delayed",
     "weekend delivery",
-    "saturday delivery",
-    "sunday delivery",
     "international delivery",
     "outside pakistan delivery",
     "pakistan delivery",
-
-    // -----------------------------------------------------
-    // Payment extra questions
-    // -----------------------------------------------------
 
     "online payment",
     "payment kaise",
@@ -415,24 +331,13 @@ function looksLikeStoreQuestion(
     "payment method",
     "payment options",
     "bank transfer",
-    "bank payment",
     "online transfer",
     "payment safe",
     "payment secure",
-    "payment fail",
     "payment failed",
-    "payment confirm",
-    "payment confirmation",
     "payment pending",
     "advance payment",
-    "advance dena",
-    "advance payment karni",
     "cod available",
-    "cash payment",
-
-    // -----------------------------------------------------
-    // Order extra questions
-    // -----------------------------------------------------
 
     "order place",
     "order place karna",
@@ -443,15 +348,12 @@ function looksLikeStoreQuestion(
     "order confirmation",
     "order status",
     "order check",
-    "order check karna",
     "mera order",
     "my order",
     "order nahi aya",
     "order nahi aaya",
-    "order receive nahi",
     "order late",
     "order delay",
-    "order address",
     "address change",
     "address update",
     "order modify",
@@ -460,49 +362,31 @@ function looksLikeStoreQuestion(
     "tracking id",
     "track my order",
 
-    // -----------------------------------------------------
-    // Return / exchange / refund
-    // -----------------------------------------------------
-
     "return policy",
     "return kaise",
     "product return",
     "return karna",
     "return kitne din",
-    "return period",
     "exchange policy",
     "exchange kaise",
-    "exchange karna",
-    "exchange kitne din",
     "wrong product",
     "galat product",
     "damaged product",
-    "damage product",
     "broken product",
     "defective product",
     "refund policy",
     "refund kaise",
     "refund kab",
-    "refund kitne din",
-    "refund method",
     "paise wapis",
     "money back",
 
-    // -----------------------------------------------------
-    // Trust / security
-    // -----------------------------------------------------
-
     "trusted store",
     "trustworthy store",
-    "store trusted",
     "genuine store",
     "real store",
     "fake store",
     "original store",
     "safe store",
-    "store safe",
-    "payment secure",
-    "payment safe",
     "data safe",
     "information safe",
     "personal information",
@@ -513,85 +397,39 @@ function looksLikeStoreQuestion(
     "secure payment",
     "security",
 
-    // -----------------------------------------------------
-    // Offers / discounts
-    // -----------------------------------------------------
-
     "discount",
     "discounts",
-    "discount available",
-    "discount hai",
     "offer",
     "offers",
-    "offer hai",
     "special offer",
-    "special offers",
     "sale",
-    "sale lagi",
-    "sale chal rahi",
     "promotion",
-    "promotions",
-    "promo",
     "promo code",
     "coupon",
     "coupon code",
     "discount code",
-    "free shipping offer",
-    "new customer discount",
-    "first order discount",
     "eid offer",
-    "special sale",
-
-    // -----------------------------------------------------
-    // Wholesale / bulk / business
-    // -----------------------------------------------------
 
     "wholesale",
-    "wholesale available",
     "wholesale price",
     "bulk order",
     "bulk orders",
     "bulk purchase",
-    "large order",
-    "large orders",
-    "quantity order",
     "business order",
-    "business orders",
     "reseller",
     "reselling",
-    "retail",
     "dealer",
-    "dealership",
-
-    // -----------------------------------------------------
-    // Store type / availability
-    // -----------------------------------------------------
 
     "online store",
     "online shop",
-    "website store",
     "physical shop",
     "physical store",
     "offline store",
-    "online hai",
-    "physical hai",
 
-    // -----------------------------------------------------
-    // General store questions
-    // -----------------------------------------------------
-
-    "nexas store kya hai",
-    "nexas kya hai",
-    "nexas kis country",
-    "store kab se",
-    "store kitna purana",
-    "aapka store",
-    "aapke store",
-    "aapki shop",
-    "shop ke bare mein",
-    "store ke bare mein",
     "store information",
     "store info",
+    "store ke bare mein",
+    "shop ke bare mein",
   ];
 
   return storeWords.some(
@@ -600,50 +438,83 @@ function looksLikeStoreQuestion(
 }
 
 // =========================================================
-// BUDGET EXTRACTION
+// BUDGET RANGE
 // =========================================================
 
-function extractBudget(
+interface BudgetRange {
+  min?: number;
+  max?: number;
+}
+
+function extractBudgetRange(
   message: string,
-): number | undefined {
+): BudgetRange {
   const text = normalize(message);
 
-  const patterns = [
-    /under\s+(\d+(?:\.\d+)?)/i,
-    /below\s+(\d+(?:\.\d+)?)/i,
-    /less\s+than\s+(\d+(?:\.\d+)?)/i,
-
-    /(\d+(?:\.\d+)?)\s*(?:rs|pkr|rupees)/i,
-    /(?:rs|pkr|rupees)\s*(\d+(?:\.\d+)?)/i,
-
-    /(\d+(?:\.\d+)?)\s*(?:tak|tk)/i,
-    /(\d+(?:\.\d+)?)\s*(?:ke\s+andar|kay\s+andar)/i,
-
-    /(\d+(?:\.\d+)?)\s*(?:range|budget)/i,
-
-    /(\d+(?:\.\d+)?)\s*(?:se\s+kam|say\s+kam)/i,
+  const rangePatterns = [
+    /(\d[\d,]*)\s*(?:to|-|se)\s*(\d[\d,]*)/,
+    /(\d[\d,]*)\s*(?:se)\s*(\d[\d,]*)\s*(?:tak)?/,
   ];
 
-  for (const pattern of patterns) {
+  for (const pattern of rangePatterns) {
     const match = text.match(pattern);
 
-    if (match?.[1]) {
-      const amount = Number(match[1]);
+    if (match?.[1] && match?.[2]) {
+      const min = Number(
+        match[1].replace(/,/g, ""),
+      );
+
+      const max = Number(
+        match[2].replace(/,/g, ""),
+      );
 
       if (
-        Number.isFinite(amount) &&
-        amount > 0
+        Number.isFinite(min) &&
+        Number.isFinite(max) &&
+        min > 0 &&
+        max > 0
       ) {
-        return amount;
+        return {
+          min: Math.min(min, max),
+          max: Math.max(min, max),
+        };
       }
     }
   }
 
-  return undefined;
+  const maxPatterns = [
+    /under\s+(\d[\d,]*)/,
+    /below\s+(\d[\d,]*)/,
+    /less\s+than\s+(\d[\d,]*)/,
+    /(\d[\d,]*)\s*(?:tak|tk)/,
+    /(\d[\d,]*)\s*(?:ke andar|kay andar)/,
+    /(\d[\d,]*)\s*(?:se kam|say kam)/,
+    /(?:rs|pkr|rupees)\s*(\d[\d,]*)/,
+    /(\d[\d,]*)\s*(?:rs|pkr|rupees)/,
+  ];
+
+  for (const pattern of maxPatterns) {
+    const match = text.match(pattern);
+
+    if (match?.[1]) {
+      const max = Number(
+        match[1].replace(/,/g, ""),
+      );
+
+      if (
+        Number.isFinite(max) &&
+        max > 0
+      ) {
+        return { max };
+      }
+    }
+  }
+
+  return {};
 }
 
 // =========================================================
-// CATEGORY EXTRACTION
+// CATEGORY MAPPING
 // =========================================================
 
 function extractCategory(
@@ -651,52 +522,258 @@ function extractCategory(
 ): string | undefined {
   const text = normalize(message);
 
-  const categories = [
-    "electronics",
-    "electronic",
-    "fashion",
-    "clothing",
-    "beauty",
-    "accessories",
-    "accessory",
-    "mobile",
-    "mobiles",
-    "phone",
-    "phones",
-    "home",
-    "kitchen",
-    "jewelry",
-    "jewellery",
-    "shoes",
-    "shoe",
-    "bags",
-    "bag",
-    "gifts",
-    "gift",
-  ];
+  const categoryMap: Record<string, string> = {
+    electronics: "electronics",
+    electronic: "electronics",
 
-  return categories.find(
-    (category) =>
-      text.includes(category),
-  );
+    phone: "electronics",
+    phones: "electronics",
+    mobile: "electronics",
+    mobiles: "electronics",
+    headphone: "electronics",
+    headphones: "electronics",
+    earbuds: "electronics",
+    speaker: "electronics",
+    charger: "electronics",
+    "power bank": "electronics",
+
+    fashion: "fashion",
+    clothing: "clothing",
+    clothes: "clothing",
+    dress: "clothing",
+    shirt: "clothing",
+    suit: "clothing",
+
+    beauty: "beauty",
+
+    accessories: "accessories",
+    accessory: "accessories",
+    watch: "accessories",
+    watches: "accessories",
+
+    home: "home",
+    kitchen: "kitchen",
+
+    jewelry: "jewelry",
+    jewellery: "jewelry",
+
+    shoes: "shoes",
+    shoe: "shoes",
+
+    bags: "bags",
+    bag: "bags",
+
+    gifts: "gifts",
+    gift: "gifts",
+  };
+
+  for (const [keyword, category] of Object.entries(
+    categoryMap,
+  )) {
+    if (text.includes(keyword)) {
+      return category;
+    }
+  }
+
+  return undefined;
 }
 
 // =========================================================
-// SHOULD SEARCH
+// SORT INTENT
 // =========================================================
 
-function shouldSearchProducts(
+type SortMode =
+  | "price-low"
+  | "price-high"
+  | "best"
+  | undefined;
+
+function extractSortMode(
+  message: string,
+): SortMode {
+  const text = normalize(message);
+
+  if (
+    text.includes("cheapest") ||
+    text.includes("cheaper") ||
+    text.includes("sasta") ||
+    text.includes("sasti") ||
+    text.includes("lowest price") ||
+    text.includes("low price") ||
+    text.includes("sabse kam")
+  ) {
+    return "price-low";
+  }
+
+  if (
+    text.includes("expensive") ||
+    text.includes("highest price") ||
+    text.includes("high price") ||
+    text.includes("mehnga") ||
+    text.includes("mehngi") ||
+    text.includes("sabse zyada")
+  ) {
+    return "price-high";
+  }
+
+  if (
+    text.includes("best") ||
+    text.includes("recommended") ||
+    text.includes("recommend") ||
+    text.includes("acha") ||
+    text.includes("achi") ||
+    text.includes("top")
+  ) {
+    return "best";
+  }
+
+  return undefined;
+}
+
+// =========================================================
+// SORT PRODUCTS
+// =========================================================
+
+function sortResults(
+  results: ReturnType<typeof searchProducts>,
+  mode: SortMode,
+) {
+  if (!mode) {
+    return results;
+  }
+
+  return [...results].sort((a, b) => {
+    const priceA = Number(a.product.price) || 0;
+    const priceB = Number(b.product.price) || 0;
+
+    if (mode === "price-low") {
+      return priceA - priceB;
+    }
+
+    if (mode === "price-high") {
+      return priceB - priceA;
+    }
+
+    return priceA - priceB;
+  });
+}
+
+// =========================================================
+// PRODUCT QUESTION / DETAILS
+// =========================================================
+
+function isProductDetailQuestion(
   message: string,
 ): boolean {
-  return (
-    looksLikeProductQuestion(message) ||
-    Boolean(extractBudget(message)) ||
-    Boolean(extractCategory(message))
+  const text = normalize(message);
+
+  const patterns = [
+    "iska price",
+    "iski price",
+    "iska rate",
+    "iski details",
+    "product details",
+    "details batao",
+    "details bata dein",
+    "description",
+    "features",
+    "feature",
+    "colors",
+    "colours",
+    "color hai",
+    "colour hai",
+    "size hai",
+    "sizes",
+    "options",
+    "option",
+    "is mein kya hai",
+    "isme kya hai",
+    "is ke bare mein",
+    "iske bare mein",
+    "about this",
+  ];
+
+  return patterns.some(
+    (pattern) => text.includes(pattern),
   );
 }
 
 // =========================================================
-// FIND PREVIOUS PRODUCT SEARCH
+// ADD TO CART INTENT
+// =========================================================
+
+function isAddToCartRequest(
+  message: string,
+): boolean {
+  const text = normalize(message);
+
+  const patterns = [
+    "add to cart",
+    "add this to cart",
+    "cart mein add",
+    "cart me add",
+    "cart mein daal",
+    "cart me daal",
+    "cart mein dal",
+    "cart me dal",
+    "cart mein rakh",
+    "cart me rakh",
+    "isko cart",
+    "ye cart",
+  ];
+
+  return patterns.some(
+    (pattern) => text.includes(pattern),
+  );
+}
+
+// =========================================================
+// COMPARISON INTENT
+// =========================================================
+
+function isComparisonRequest(
+  message: string,
+): boolean {
+  const text = normalize(message);
+
+  const patterns = [
+    "compare",
+    "comparison",
+    "compare karo",
+    "compare kar do",
+    "dono mein",
+    "dono me",
+    "which is better",
+    "kon better",
+    "kaun better",
+    "better konsa",
+    "best konsa",
+    "best kaunsa",
+    "difference",
+    "farq",
+  ];
+
+  return patterns.some(
+    (pattern) => text.includes(pattern),
+  );
+}
+
+// =========================================================
+// TRACKING ID
+// =========================================================
+
+function extractTrackingId(
+  message: string,
+): string | undefined {
+  const match = message.match(
+    /\bNX\d{6}\b/i,
+  );
+
+  return match?.[0]?.toUpperCase();
+}
+
+// =========================================================
+// PREVIOUS SEARCH
 // =========================================================
 
 function getPreviousSearchMessage(
@@ -727,7 +804,7 @@ function getPreviousSearchMessage(
 }
 
 // =========================================================
-// GET ALREADY SHOWN PRODUCTS
+// PREVIOUSLY SHOWN PRODUCTS
 // =========================================================
 
 function getPreviouslyShownIds(
@@ -752,6 +829,43 @@ function getPreviouslyShownIds(
 }
 
 // =========================================================
+// CURRENT PRODUCT
+// =========================================================
+
+function getCurrentProduct(
+  products: Product[],
+  currentProductId?: string,
+): Product | undefined {
+  if (!currentProductId) {
+    return undefined;
+  }
+
+  return products.find(
+    (product) =>
+      product.id === currentProductId,
+  );
+}
+
+// =========================================================
+// SEARCH DECISION
+// =========================================================
+
+function shouldSearchProducts(
+  message: string,
+): boolean {
+  const budget =
+    extractBudgetRange(message);
+
+  return (
+    looksLikeProductQuestion(message) ||
+    Boolean(budget.min) ||
+    Boolean(budget.max) ||
+    Boolean(extractCategory(message)) ||
+    Boolean(extractSortMode(message))
+  );
+}
+
+// =========================================================
 // MAIN ENGINE
 // =========================================================
 
@@ -764,7 +878,104 @@ export function runNexasAIEngine(
   const conversation =
     request.conversation ?? [];
 
+  const text = normalize(message);
+
   if (!message) {
+    return createSellerChatResponse();
+  }
+
+  // =======================================================
+  // TRACKING ID
+  // =======================================================
+
+  const trackingId =
+    extractTrackingId(message);
+
+  if (trackingId) {
+    return createStoreResponse(
+      `Aapka tracking ID **${trackingId}** hai. Main order tracking ke liye aapko Seller/Order Tracking section use karne mein help kar sakta hoon. 😊`,
+    );
+  }
+
+  // =======================================================
+  // CURRENT PRODUCT CONTEXT
+  // =======================================================
+
+  const currentProduct =
+    getCurrentProduct(
+      request.products,
+      request.currentProductId,
+    );
+
+  if (
+    currentProduct &&
+    isProductDetailQuestion(message)
+  ) {
+    const productId =
+      currentProduct.id;
+
+    return createProductResponse(
+      `Bilkul! **${currentProduct.name}** ke baare mein aap product page par available price, description aur options check kar sakte hain. 😊`,
+      [productId],
+    );
+  }
+
+  // =======================================================
+  // ADD TO CART
+  // =======================================================
+
+  if (
+    isAddToCartRequest(message)
+  ) {
+    if (currentProduct) {
+      return createProductResponse(
+        `Bilkul! **${currentProduct.name}** ko cart mein add karne ke liye product page ka **Add to Cart** button use karein. 🛒😊`,
+        [currentProduct.id],
+      );
+    }
+
+    return createSellerChatResponse();
+  }
+
+  // =======================================================
+  // COMPARISON
+  // =======================================================
+
+  if (
+    isComparisonRequest(message)
+  ) {
+    const results = searchProducts(
+      request.products,
+      {
+        text: message,
+      },
+      10,
+    );
+
+    const products = results
+      .slice(0, 2)
+      .map(
+        (result) =>
+          result.product,
+      );
+
+    if (products.length >= 2) {
+      const names = products
+        .map(
+          (product) =>
+            `${product.name} (Rs ${Number(product.price).toLocaleString()})`,
+        )
+        .join(" vs ");
+
+      return createProductResponse(
+        `Bilkul! Main in dono products ko compare karne mein help kar sakta hoon: **${names}**. 😊`,
+        products.map(
+          (product) =>
+            product.id,
+        ),
+      );
+    }
+
     return createSellerChatResponse();
   }
 
@@ -772,7 +983,9 @@ export function runNexasAIEngine(
   // MORE PRODUCTS
   // =======================================================
 
-  if (isMoreProductsRequest(message)) {
+  if (
+    isMoreProductsRequest(message)
+  ) {
     const previousSearch =
       getPreviousSearchMessage(
         conversation,
@@ -786,27 +999,35 @@ export function runNexasAIEngine(
     }
 
     const budget =
-      extractBudget(previousSearch);
+      extractBudgetRange(
+        previousSearch,
+      );
 
     const category =
-      extractCategory(previousSearch);
+      extractCategory(
+        previousSearch,
+      );
+
+    const sortMode =
+      extractSortMode(
+        previousSearch,
+      );
 
     const results = searchProducts(
       request.products,
       {
         text: previousSearch,
-        maxPrice: budget,
+        maxPrice: budget.max,
         category,
       },
       50,
     );
 
-    if (results.length === 0) {
-      return createProductResponse(
-        "Sorry, mujhe matching products nahi mil rahe. 😔",
-        [],
+    const sortedResults =
+      sortResults(
+        results,
+        sortMode,
       );
-    }
 
     const previouslyShownIds =
       getPreviouslyShownIds(
@@ -814,16 +1035,18 @@ export function runNexasAIEngine(
       );
 
     const remainingResults =
-      results.filter(
+      sortedResults.filter(
         (result) =>
           !previouslyShownIds.includes(
             result.product.id,
           ),
       );
 
-    if (remainingResults.length === 0) {
+    if (
+      remainingResults.length === 0
+    ) {
       return createProductResponse(
-        "😊 Is search ke saare matching products main aapko dikha chuka hoon. Agar aap kisi aur category ya budget mein products chahte hain to mujhe bata dein.",
+        "😊 Is search ke saare matching products main aapko dikha chuka hoon. Aap koi aur category ya budget try kar sakte hain.",
         [],
       );
     }
@@ -848,12 +1071,12 @@ export function runNexasAIEngine(
         )
         .join(", ");
 
-    const moreMessage = hasMore
-      ? " Agar ye bhi pasand na aayein to **“aur dikhao”** likhein, main next products dikha deta hoon. 😊"
-      : " Ye is search ke last matching products hain. 😊";
-
     return createProductResponse(
-      `Bilkul! Ye rahe aur products: ${productNames}. 😊${moreMessage}`,
+      `Bilkul! Ye rahe aur products: **${productNames}**. 😊${
+        hasMore
+          ? ' Agar aur dekhna hai to **"aur dikhao"** likhein.'
+          : " Ye last matching products hain."
+      }`,
       nextIds,
       {
         hasMoreProducts: hasMore,
@@ -890,36 +1113,49 @@ export function runNexasAIEngine(
     shouldSearchProducts(message)
   ) {
     const budget =
-      extractBudget(message);
+      extractBudgetRange(message);
 
     const category =
       extractCategory(message);
+
+    const sortMode =
+      extractSortMode(message);
 
     const results = searchProducts(
       request.products,
       {
         text: message,
-        maxPrice: budget,
+        minPrice: budget.min,
+        maxPrice: budget.max,
         category,
       },
       50,
     );
 
-    if (results.length === 0) {
+    const sortedResults =
+      sortResults(
+        results,
+        sortMode,
+      );
+
+    if (
+      sortedResults.length === 0
+    ) {
+      if (budget.max) {
+        return createProductResponse(
+          `Sorry, mujhe Rs ${budget.max.toLocaleString()} ke andar matching product nahi mila. 😔 Aap budget range increase karke try kar sakte hain.`,
+          [],
+        );
+      }
+
       return createProductResponse(
-        budget
-          ? `Sorry, mujhe Rs ${budget.toLocaleString()} ke andar matching product nahi mila. 😔 Aap apni budget range increase karke try kar sakte hain.`
-          : "Sorry, mujhe is waqt matching product nahi mila. 😔 Aap kisi aur product ya category ka naam try karein.",
+        "Sorry, mujhe is waqt matching product nahi mila. 😔 Aap kisi aur product ya category ka naam try karein.",
         [],
       );
     }
 
-    // ---------------------------------------------
-    // ONLY FIRST 2 PRODUCTS
-    // ---------------------------------------------
-
     const firstProducts =
-      results.slice(0, 2);
+      sortedResults.slice(0, 2);
 
     const productIds =
       firstProducts.map(
@@ -936,22 +1172,43 @@ export function runNexasAIEngine(
         .join(", ");
 
     const hasMore =
-      results.length > 2;
+      sortedResults.length > 2;
 
-    const budgetText = budget
-      ? ` Rs ${budget.toLocaleString()} ke andar`
-      : "";
+    let filterText = "";
 
-    const categoryText = category
-      ? ` ${category}`
-      : "";
+    if (budget.min && budget.max) {
+      filterText += ` Rs ${budget.min.toLocaleString()} se Rs ${budget.max.toLocaleString()} ke darmiyan`;
+    } else if (budget.max) {
+      filterText += ` Rs ${budget.max.toLocaleString()} ke andar`;
+    }
 
-    const moreText = hasMore
-      ? " Agar ye products pasand na aayein to **“aur dikhao”** likhein, main aur products dikha deta hoon. 😊"
-      : "";
+    if (category) {
+      filterText += ` ${category}`;
+    }
+
+    let sortText = "";
+
+    if (sortMode === "price-low") {
+      sortText =
+        " Sabse affordable options pehle hain.";
+    }
+
+    if (sortMode === "price-high") {
+      sortText =
+        " Higher-price options pehle hain.";
+    }
+
+    if (sortMode === "best") {
+      sortText =
+        " Ye recommended options hain.";
+    }
 
     return createProductResponse(
-      `Bilkul! Mujhe${categoryText}${budgetText} matching products mile. Pehle main aapko 2 products dikhata hoon: ${productNames}. 😊${moreText}`,
+      `Bilkul! Mujhe${filterText} matching products mile. Pehle main aapko 2 products dikhata hoon: **${productNames}**. 😊${sortText}${
+        hasMore
+          ? ' Agar aur products chahiye hon to **"aur dikhao"** likhein.'
+          : ""
+      }`,
       productIds,
       {
         hasMoreProducts: hasMore,
@@ -968,8 +1225,68 @@ export function runNexasAIEngine(
     looksLikeStoreQuestion(message)
   ) {
     return createStoreResponse(
-      "Bilkul! Main Nexas Store ke delivery, payment, COD, returns, orders, tracking, store location, timings, contact, offers, security, wholesale aur seller-related questions mein help kar sakta hoon. Agar exact information available na hui to aap Chat with Seller se hamari team se directly baat kar sakte hain. 😊",
+      "Bilkul! Main Nexas Store ke delivery, payment, COD, returns, orders, tracking, store location, timings, contact, offers, security, wholesale aur seller-related questions mein help kar sakta hoon. Agar exact information available na hui to **Chat with Seller** se hamari team se directly baat kar sakte hain. 😊",
     );
+  }
+
+  // =======================================================
+  // SIMPLE FOLLOW-UP
+  // =======================================================
+
+  if (
+    text === "3000" ||
+    text === "2000" ||
+    text === "5000" ||
+    /^\d+$/.test(text)
+  ) {
+    const previousSearch =
+      getPreviousSearchMessage(
+        conversation,
+      );
+
+    if (previousSearch) {
+      const budget =
+        Number(text);
+
+      const results =
+        searchProducts(
+          request.products,
+          {
+            text: previousSearch,
+            maxPrice: budget,
+          },
+          50,
+        );
+
+      if (results.length > 0) {
+        const first =
+          results.slice(0, 2);
+
+        const ids =
+          first.map(
+            (result) =>
+              result.product.id,
+          );
+
+        const names =
+          first
+            .map(
+              (result) =>
+                result.product.name,
+            )
+            .join(", ");
+
+        return createProductResponse(
+          `Bilkul! Rs ${budget.toLocaleString()} ke budget mein mujhe ye products mile: **${names}**. 😊`,
+          ids,
+          {
+            hasMoreProducts:
+              results.length > 2,
+            nextProductOffset: 2,
+          },
+        );
+      }
+    }
   }
 
   // =======================================================
