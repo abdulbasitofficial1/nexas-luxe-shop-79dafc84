@@ -1,10 +1,15 @@
 /**
- * WooCommerce CSV → store product import pipeline.
+ * WooCommerce CSV → Nexas Store product import pipeline.
  *
- * Pure parsing/mapping helpers live here so the dialog stays presentational.
- * Nothing in this module (or the data it writes) records where the CSV came
- * from — imported products are indistinguishable from manually added ones.
+ * Responsibilities:
+ * - Parse WooCommerce / Markaz CSV exports
+ * - Clean supplier descriptions
+ * - Remove Markaz promotional/footer text
+ * - Normalize product fields
+ * - Import/update products in Firestore
+ * - Mirror product images to Firebase Storage
  */
+
 import Papa from "papaparse";
 import {
   collection,
@@ -14,10 +19,15 @@ import {
   type Firestore,
 } from "firebase/firestore";
 import type { FirebaseStorage } from "firebase/storage";
+
 import { mirrorImages } from "./product-images";
 import type { Product, ProductOption } from "./types";
 
-/** Raw CSV row: WooCommerce exports use human-readable header names. */
+/* -------------------------------------------------------------------------- */
+/* Types                                                                      */
+/* -------------------------------------------------------------------------- */
+
+/** Raw CSV row. */
 export type CsvRow = Record<string, string>;
 
 export type ProfitType = "fixed" | "percentage";
@@ -27,21 +37,27 @@ export interface ProfitSettings {
   value: number;
 }
 
-/** A product parsed from the CSV, ready to be written to Firestore. */
+/** Product ready to be written to Firestore. */
 export interface ParsedProduct {
   sku: string;
   name: string;
   description: string;
   shortDescription: string;
-  /** Base (cost) price straight from the CSV. */
+
+  /** Base/cost price from CSV. */
   basePrice: number;
-  /** Final store price after profit is applied. */
+
+  /** Final store price after profit. */
   price: number;
+
   salePrice?: number;
   stock?: number;
+
   tags: string[];
+
   images: string[];
   image: string;
+
   options: ProductOption[];
 }
 
@@ -54,59 +70,355 @@ export interface ImportSummary {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Helpers                                                                     */
+/* CSV Helpers                                                                */
 /* -------------------------------------------------------------------------- */
 
-/** Case/spacing-insensitive column lookup (WooCommerce headers vary a lot). */
-function col(row: CsvRow, ...names: string[]): string {
+/**
+ * Case/spacing-insensitive column lookup.
+ */
+function col(
+  row: CsvRow,
+  ...names: string[]
+): string {
   for (const name of names) {
     const key = Object.keys(row).find(
-      (k) => k.trim().toLowerCase().replace(/^\ufeff/, "") === name.toLowerCase(),
+      (k) =>
+        k
+          .trim()
+          .toLowerCase()
+          .replace(/^\ufeff/, "") ===
+        name.toLowerCase(),
     );
-    if (key && row[key] != null && String(row[key]).trim() !== "") {
+
+    if (
+      key &&
+      row[key] != null &&
+      String(row[key]).trim() !== ""
+    ) {
       return String(row[key]).trim();
     }
   }
+
   return "";
 }
 
-/** Strip HTML tags/entities so descriptions render safely as plain text. */
-export function stripHtml(html: string): string {
+/* -------------------------------------------------------------------------- */
+/* HTML Cleaning                                                              */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Strip HTML tags/entities so descriptions render safely as plain text.
+ */
+export function stripHtml(
+  html: string,
+): string {
   return html
-    .replace(/<\s*br\s*\/?>/gi, "\n")
-    .replace(/<\/\s*(p|li|ul|div|h[1-6])\s*>/gi, "\n")
-    .replace(/<\s*li[^>]*>/gi, "• ")
+    .replace(
+      /<\s*br\s*\/?>/gi,
+      "\n",
+    )
+    .replace(
+      /<\/\s*(p|li|ul|div|h[1-6])\s*>/gi,
+      "\n",
+    )
+    .replace(
+      /<\s*li[^>]*>/gi,
+      "• ",
+    )
     .replace(/<[^>]+>/g, "")
     .replace(/&nbsp;/gi, " ")
     .replace(/&amp;/gi, "&")
     .replace(/&quot;/gi, '"')
-    .replace(/&#0?39;|&apos;/gi, "'")
+    .replace(
+      /&#0?39;|&apos;/gi,
+      "'",
+    )
     .replace(/&lt;/gi, "<")
     .replace(/&gt;/gi, ">")
-    .replace(/\n{3,}/g, "\n\n")
+    .replace(
+      /\n{3,}/g,
+      "\n\n",
+    )
     .trim();
 }
 
-/** Parse a possibly formatted number ("Rs 2,000", "'-1") into a safe number. */
-function num(value: string): number {
-  const cleaned = value.replace(/[^0-9.]/g, "");
-  const n = Number.parseFloat(cleaned);
-  return Number.isFinite(n) ? n : 0;
+/* -------------------------------------------------------------------------- */
+/* Nexas Description Cleaner                                                  */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Cleans WooCommerce / Markaz supplier descriptions.
+ *
+ * Examples of things removed:
+ * - Markaz footer
+ * - Markaz promotional text
+ * - Product Code
+ * - Broken ?? characters
+ * - Excessive bullets
+ * - Excessive spaces
+ *
+ * Examples of fields normalized:
+ * - Gender Type → Gender
+ * - Product Design → Design
+ * - Product Feature → Feature
+ * - Number Of Pieces → Pieces
+ * - Jewelry Care Instructions → Jewelry Care
+ */
+export function cleanProductDescription(
+  input: string,
+): string {
+  if (!input) return "";
+
+  let text = input;
+
+  /* ------------------------------------------------------------------------ */
+  /* Basic cleanup                                                            */
+  /* ------------------------------------------------------------------------ */
+
+  text = text
+    .replace(/\uFFFD/g, "")
+    .replace(/\?\?/g, "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n");
+
+  /* ------------------------------------------------------------------------ */
+  /* Remove Markaz promotional/footer text                                    */
+  /* ------------------------------------------------------------------------ */
+
+  text = text
+    .replace(
+      /Delivered\s+across\s+Pakistan\s+with\s+cash\s+on\s+delivery\.?/gi,
+      "",
+    )
+    .replace(
+      /View\s+this\s+product\s+on\s+Markaz\.?/gi,
+      "",
+    );
+
+  /* ------------------------------------------------------------------------ */
+  /* Remove supplier product code                                             */
+  /* ------------------------------------------------------------------------ */
+
+  text = text.replace(
+    /Product\s*Code\s*:\s*[A-Za-z0-9_-]+/gi,
+    "",
+  );
+
+  /* ------------------------------------------------------------------------ */
+  /* Normalize bullet characters                                              */
+  /* ------------------------------------------------------------------------ */
+
+  text = text.replace(
+    /[•●▪◦∙]/g,
+    "\n",
+  );
+
+  /* ------------------------------------------------------------------------ */
+  /* Normalize field names                                                    */
+  /* ------------------------------------------------------------------------ */
+
+  text = text
+    .replace(
+      /Gender\s*Type\s*:/gi,
+      "Gender:",
+    )
+    .replace(
+      /Product\s*Design\s*:/gi,
+      "Design:",
+    )
+    .replace(
+      /Product\s*Feature\s*:/gi,
+      "Feature:",
+    )
+    .replace(
+      /Number\s*Of\s*Pieces\s*:/gi,
+      "Pieces:",
+    )
+    .replace(
+      /Jewelry\s*Care\s*Instructions\s*:/gi,
+      "Jewelry Care:",
+    )
+    .replace(
+      /Jewellery\s*Care\s*Instructions\s*:/gi,
+      "Jewelry Care:",
+    )
+    .replace(
+      /Package\s*Include\s*:/gi,
+      "Package Includes:",
+    );
+
+  /* ------------------------------------------------------------------------ */
+  /* Put common fields on separate lines                                      */
+  /* ------------------------------------------------------------------------ */
+
+  const fields = [
+    "Material",
+    "Plating",
+    "Gender",
+    "Design",
+    "Feature",
+    "Pieces",
+    "Size",
+    "Color",
+    "Colour",
+    "Package Includes",
+    "Jewelry Care",
+    "Product Code",
+    "Brand",
+    "Model",
+    "Weight",
+    "Dimensions",
+    "Capacity",
+    "Compatibility",
+    "Battery",
+    "Power",
+    "Warranty",
+  ];
+
+  for (const field of fields) {
+    const escaped = field.replace(
+      /[.*+?^${}()|[\]\\]/g,
+      "\\$&",
+    );
+
+    text = text.replace(
+      new RegExp(
+        `\\s*(${escaped}\\s*:)`,
+        "gi",
+      ),
+      `\n$1`,
+    );
+  }
+
+  /* ------------------------------------------------------------------------ */
+  /* Split care instructions                                                  */
+  /* ------------------------------------------------------------------------ */
+
+  const careStarts = [
+    "Avoid contact",
+    "Remove before",
+    "Store in",
+    "Keep away",
+    "With proper care",
+    "Handle gently",
+    "Note:",
+  ];
+
+  for (const phrase of careStarts) {
+    const escaped = phrase.replace(
+      /[.*+?^${}()|[\]\\]/g,
+      "\\$&",
+    );
+
+    text = text.replace(
+      new RegExp(
+        `\\s+(${escaped})`,
+        "gi",
+      ),
+      "\n$1",
+    );
+  }
+
+  /* ------------------------------------------------------------------------ */
+  /* Remove leftover Markaz text                                              */
+  /* ------------------------------------------------------------------------ */
+
+  text = text
+    .replace(
+      /Delivered\s+across\s+Pakistan.*$/gim,
+      "",
+    )
+    .replace(
+      /View\s+this\s+product\s+on\s+Markaz.*$/gim,
+      "",
+    );
+
+  /* ------------------------------------------------------------------------ */
+  /* Clean spaces                                                             */
+  /* ------------------------------------------------------------------------ */
+
+  text = text
+    .replace(/[ \t]+/g, " ")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n[ \t]+/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  /* ------------------------------------------------------------------------ */
+  /* Clean individual lines                                                   */
+  /* ------------------------------------------------------------------------ */
+
+  const lines = text
+    .split("\n")
+    .map((line) =>
+      line
+        .replace(/^[-:]+/, "")
+        .replace(/\s+/g, " ")
+        .trim(),
+    )
+    .filter(Boolean);
+
+  /* ------------------------------------------------------------------------ */
+  /* Final output                                                             */
+  /* ------------------------------------------------------------------------ */
+
+  return lines.join("\n").trim();
 }
 
-/** Split comma/pipe separated CSV cell values. */
-function splitList(value: string): string[] {
+/* -------------------------------------------------------------------------- */
+/* Number Helpers                                                             */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Parse formatted numbers such as:
+ * Rs 2,000
+ * PKR 1500
+ * 1,999
+ */
+function num(
+  value: string,
+): number {
+  const cleaned = value.replace(
+    /[^0-9.]/g,
+    "",
+  );
+
+  const n =
+    Number.parseFloat(cleaned);
+
+  return Number.isFinite(n)
+    ? n
+    : 0;
+}
+
+/* -------------------------------------------------------------------------- */
+/* List Helpers                                                               */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Split comma/pipe separated CSV values.
+ */
+function splitList(
+  value: string,
+): string[] {
   if (!value) return [];
+
   return value
     .split(/\s*(?:\||,)\s*/)
     .map((v) => v.trim())
     .filter(Boolean);
 }
 
+/* -------------------------------------------------------------------------- */
+/* URL Helpers                                                                */
+/* -------------------------------------------------------------------------- */
+
 /**
- * Decode common HTML entities that WooCommerce exports leave inside URLs.
+ * Decode common HTML entities inside URLs.
  */
-function decodeEntities(url: string): string {
+function decodeEntities(
+  url: string,
+): string {
   return url
     .replace(/&amp;/gi, "&")
     .replace(/&#0?38;/g, "&")
@@ -115,100 +427,200 @@ function decodeEntities(url: string): string {
 }
 
 /**
- * Normalise a single image URL.
+ * Normalize a single image URL.
  *
- * Markaz exports wrap every image in a proxy endpoint:
- *   https://www.markaz.app/api/export/image/<file>?src=<url-encoded CDN url>
- * The proxy is rate limited and can fail when a grid loads many images at
- * once, while the encoded `src` target is the stable CDN original — so when a
- * valid `src` is present we unwrap it and store the direct CDN URL instead.
+ * Markaz exports may wrap images through a proxy.
+ * If ?src= contains the original URL, unwrap it.
  */
-export function normalizeImageUrl(raw: string): string {
-  let url = decodeEntities(raw).replace(/^["'<]+|["'>]+$/g, "").trim();
-  if (!/^https?:\/\//i.test(url)) return "";
+export function normalizeImageUrl(
+  raw: string,
+): string {
+  let url = decodeEntities(raw)
+    .replace(/^["'<]+|["'>]+$/g, "")
+    .trim();
 
-  const srcMatch = url.match(/[?&]src=([^&]+)/i);
+  if (!/^https?:\/\//i.test(url)) {
+    return "";
+  }
+
+  const srcMatch =
+    url.match(/[?&]src=([^&]+)/i);
+
   if (srcMatch) {
     try {
-      const inner = decodeURIComponent(srcMatch[1]);
-      if (/^https?:\/\//i.test(inner)) url = inner;
+      const inner =
+        decodeURIComponent(
+          srcMatch[1],
+        );
+
+      if (
+        /^https?:\/\//i.test(
+          inner,
+        )
+      ) {
+        url = inner;
+      }
     } catch {
-      /* malformed encoding — keep the original proxy URL */
+      // Keep original URL if decoding fails.
     }
   }
+
   return url;
 }
 
 /**
- * Extract every image URL from a WooCommerce `Images` cell.
- *
- * Real-world exports separate images with commas, pipes, semicolons or plain
- * newlines, and each URL itself can contain commas inside its query string.
- * We therefore split on those separators only when the next token starts a new
- * URL, and fall back to scanning for `http` occurrences inside a chunk.
+ * Extract every image URL from an Images cell.
  */
-export function splitImages(value: string): string[] {
+export function splitImages(
+  value: string,
+): string[] {
   if (!value) return [];
 
   const chunks = value
     .replace(/\r/g, "\n")
-    .split(/[\n|;]+|,(?=\s*(?:&quot;|["'])?\s*https?:\/\/)/i)
+    .split(
+      /[\n|;]+|,(?=\s*(?:&quot;|["'])?\s*https?:\/\/)/i,
+    )
     .map((v) => v.trim())
     .filter(Boolean);
 
   const urls: string[] = [];
+
   for (const chunk of chunks) {
-    // A chunk may still hold several URLs glued together (no clean separator).
-    const found = chunk.match(/https?:\/\/[^\s"'<>|]+/gi) ?? [];
+    const found =
+      chunk.match(
+        /https?:\/\/[^\s"'<>|]+/gi,
+      ) ?? [];
+
     for (const f of found) {
-      const normalized = normalizeImageUrl(f);
-      if (normalized && !urls.includes(normalized)) urls.push(normalized);
+      const normalized =
+        normalizeImageUrl(f);
+
+      if (
+        normalized &&
+        !urls.includes(normalized)
+      ) {
+        urls.push(normalized);
+      }
     }
   }
+
   return urls;
 }
 
+/* -------------------------------------------------------------------------- */
+/* Pricing                                                                    */
+/* -------------------------------------------------------------------------- */
 
-/** Apply the admin's profit setting to a base price. */
-export function applyProfit(basePrice: number, profit: ProfitSettings): number {
-  if (!Number.isFinite(basePrice) || basePrice <= 0) return 0;
-  const value = Number.isFinite(profit.value) ? profit.value : 0;
+/**
+ * Apply admin profit setting to base price.
+ */
+export function applyProfit(
+  basePrice: number,
+  profit: ProfitSettings,
+): number {
+  if (
+    !Number.isFinite(basePrice) ||
+    basePrice <= 0
+  ) {
+    return 0;
+  }
+
+  const value =
+    Number.isFinite(profit.value)
+      ? profit.value
+      : 0;
+
   const final =
-    profit.type === "fixed" ? basePrice + value : basePrice * (1 + value / 100);
-  return Math.max(0, Math.round(final));
+    profit.type === "fixed"
+      ? basePrice + value
+      : basePrice *
+        (1 + value / 100);
+
+  return Math.max(
+    0,
+    Math.round(final),
+  );
 }
 
-/** Read up to 6 `Attribute N name` / `Attribute N value(s)` pairs from a row. */
-function readAttributes(row: CsvRow): ProductOption[] {
+/* -------------------------------------------------------------------------- */
+/* Attributes                                                                 */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Read up to 6 WooCommerce attributes.
+ */
+function readAttributes(
+  row: CsvRow,
+): ProductOption[] {
   const options: ProductOption[] = [];
+
   for (let i = 1; i <= 6; i++) {
-    const name = col(row, `Attribute ${i} name`);
-    const values = splitList(col(row, `Attribute ${i} value(s)`, `Attribute ${i} value`));
-    if (name && values.length) options.push({ name, values });
+    const name = col(
+      row,
+      `Attribute ${i} name`,
+    );
+
+    const values = splitList(
+      col(
+        row,
+        `Attribute ${i} value(s)`,
+        `Attribute ${i} value`,
+      ),
+    );
+
+    if (
+      name &&
+      values.length
+    ) {
+      options.push({
+        name,
+        values,
+      });
+    }
   }
+
   return options;
 }
 
-/** Merge variation option values into an existing option list without duplicates. */
-function mergeOptions(target: ProductOption[], extra: ProductOption[]) {
+/**
+ * Merge variation option values.
+ */
+function mergeOptions(
+  target: ProductOption[],
+  extra: ProductOption[],
+) {
   for (const opt of extra) {
-    const existing = target.find(
-      (o) => o.name.toLowerCase() === opt.name.toLowerCase(),
-    );
+    const existing =
+      target.find(
+        (o) =>
+          o.name.toLowerCase() ===
+          opt.name.toLowerCase(),
+      );
+
     if (existing) {
       for (const v of opt.values) {
-        if (!existing.values.some((x) => x.toLowerCase() === v.toLowerCase())) {
+        if (
+          !existing.values.some(
+            (x) =>
+              x.toLowerCase() ===
+              v.toLowerCase(),
+          )
+        ) {
           existing.values.push(v);
         }
       }
     } else {
-      target.push({ name: opt.name, values: [...opt.values] });
+      target.push({
+        name: opt.name,
+        values: [...opt.values],
+      });
     }
   }
 }
 
 /* -------------------------------------------------------------------------- */
-/* Parsing                                                                     */
+/* CSV Parsing                                                                */
 /* -------------------------------------------------------------------------- */
 
 export interface ParseResult {
@@ -217,27 +629,64 @@ export interface ParseResult {
   errors: string[];
 }
 
-/** Parse a WooCommerce CSV file into store-ready products. */
-export function parseCsvFile(file: File, profit: ProfitSettings): Promise<ParseResult> {
-  return new Promise((resolve, reject) => {
-    Papa.parse<CsvRow>(file, {
-      header: true,
-      skipEmptyLines: true,
-      // Large files: worker keeps the UI responsive.
-      worker: false,
-      complete: (result) => {
-        try {
-          resolve(mapRows(result.data ?? [], profit, result.errors?.length ?? 0));
-        } catch (err) {
-          reject(err instanceof Error ? err : new Error("Failed to parse CSV"));
-        }
-      },
-      error: (err) => reject(new Error(err.message || "Failed to read CSV file")),
-    });
-  });
+/**
+ * Parse WooCommerce / Markaz CSV.
+ */
+export function parseCsvFile(
+  file: File,
+  profit: ProfitSettings,
+): Promise<ParseResult> {
+  return new Promise(
+    (resolve, reject) => {
+      Papa.parse<CsvRow>(
+        file,
+        {
+          header: true,
+          skipEmptyLines: true,
+
+          worker: false,
+
+          complete: (
+            result,
+          ) => {
+            try {
+              resolve(
+                mapRows(
+                  result.data ?? [],
+                  profit,
+                  result.errors
+                    ?.length ?? 0,
+                ),
+              );
+            } catch (err) {
+              reject(
+                err instanceof Error
+                  ? err
+                  : new Error(
+                      "Failed to parse CSV",
+                    ),
+              );
+            }
+          },
+
+          error: (err) =>
+            reject(
+              new Error(
+                err.message ||
+                  "Failed to read CSV file",
+              ),
+            ),
+        },
+      );
+    },
+  );
 }
 
-/** Map raw rows → parsed products, folding variations into their parent. */
+/**
+ * Map CSV rows into products.
+ *
+ * Variations are folded into their parent product.
+ */
 export function mapRows(
   rows: CsvRow[],
   profit: ProfitSettings,
@@ -246,121 +695,333 @@ export function mapRows(
   const errors: string[] = [];
   let skipped = 0;
 
-  if (!rows.length) throw new Error("The CSV file is empty or invalid.");
+  if (!rows.length) {
+    throw new Error(
+      "The CSV file is empty or invalid.",
+    );
+  }
 
-  const headerOk = rows.some((r) => col(r, "Name", "post_title", "Title"));
+  const headerOk =
+    rows.some((r) =>
+      col(
+        r,
+        "Name",
+        "post_title",
+        "Title",
+      ),
+    );
+
   if (!headerOk) {
     throw new Error(
       "This does not look like a WooCommerce product CSV (no Name column found).",
     );
   }
 
-  const parents = new Map<string, ParsedProduct>();
+  const parents =
+    new Map<string, ParsedProduct>();
+
   const order: string[] = [];
+
   const variations: CsvRow[] = [];
 
+  /* ------------------------------------------------------------------------ */
+  /* Read parent products                                                     */
+  /* ------------------------------------------------------------------------ */
+
   for (const row of rows) {
-    const type = col(row, "Type", "post_type").toLowerCase();
+    const type = col(
+      row,
+      "Type",
+      "post_type",
+    ).toLowerCase();
+
     if (type === "variation") {
       variations.push(row);
       continue;
     }
 
-    const name = col(row, "Name", "post_title", "Title");
+    const name = col(
+      row,
+      "Name",
+      "post_title",
+      "Title",
+    );
+
     if (!name) {
       skipped++;
       continue;
     }
 
-    const sku = col(row, "SKU", "sku");
-    const basePrice = num(col(row, "Regular price", "regular_price", "Price"));
-    const salePriceRaw = num(col(row, "Sale price", "sale_price"));
-    const images = splitImages(
-      col(row, "Images", "Image", "Image URL", "Gallery Images", "Featured Image", "images"),
+    const sku = col(
+      row,
+      "SKU",
+      "sku",
     );
 
-    const stockRaw = col(row, "Stock", "stock_quantity");
+    const basePrice = num(
+      col(
+        row,
+        "Regular price",
+        "regular_price",
+        "Price",
+      ),
+    );
+
+    const salePriceRaw = num(
+      col(
+        row,
+        "Sale price",
+        "sale_price",
+      ),
+    );
+
+    const images =
+      splitImages(
+        col(
+          row,
+          "Images",
+          "Image",
+          "Image URL",
+          "Gallery Images",
+          "Featured Image",
+          "images",
+        ),
+      );
+
+    const stockRaw = col(
+      row,
+      "Stock",
+      "stock_quantity",
+    );
 
     if (basePrice <= 0) {
-      errors.push(`"${name}" has no valid price — imported at Rs 0.`);
+      errors.push(
+        `"${name}" has no valid price — imported at Rs 0.`,
+      );
     }
+
+    /* ---------------------------------------------------------------------- */
+    /* CLEAN DESCRIPTION HERE                                                */
+    /* ---------------------------------------------------------------------- */
+
+    const rawDescription =
+      stripHtml(
+        col(
+          row,
+          "Description",
+          "post_content",
+        ),
+      );
+
+    const rawShortDescription =
+      stripHtml(
+        col(
+          row,
+          "Short description",
+          "post_excerpt",
+        ),
+      );
+
+    const description =
+      cleanProductDescription(
+        rawDescription,
+      );
+
+    const shortDescription =
+      cleanProductDescription(
+        rawShortDescription,
+      );
 
     const product: ParsedProduct = {
       sku,
+
       name,
-      description: stripHtml(col(row, "Description", "post_content")),
-      shortDescription: stripHtml(col(row, "Short description", "post_excerpt")),
+
+      description,
+
+      shortDescription,
+
       basePrice,
-      price: applyProfit(basePrice, profit),
-      ...(salePriceRaw > 0 ? { salePrice: applyProfit(salePriceRaw, profit) } : {}),
-      ...(stockRaw ? { stock: num(stockRaw) } : {}),
-      tags: splitList(col(row, "Tags")),
+
+      price: applyProfit(
+        basePrice,
+        profit,
+      ),
+
+      ...(salePriceRaw > 0
+        ? {
+            salePrice:
+              applyProfit(
+                salePriceRaw,
+                profit,
+              ),
+          }
+        : {}),
+
+      ...(stockRaw
+        ? {
+            stock: num(
+              stockRaw,
+            ),
+          }
+        : {}),
+
+      tags: splitList(
+        col(row, "Tags"),
+      ),
+
       images,
-      image: images[0] ?? "",
-      options: readAttributes(row),
+
+      image:
+        images[0] ?? "",
+
+      options:
+        readAttributes(row),
     };
 
-    const key = sku || name.toLowerCase();
-    if (!parents.has(key)) order.push(key);
-    parents.set(key, product);
+    const key =
+      sku ||
+      name.toLowerCase();
+
+    if (!parents.has(key)) {
+      order.push(key);
+    }
+
+    parents.set(
+      key,
+      product,
+    );
   }
 
-  // Fold variation rows into their parent product's options (and images:
-  // some exports only attach photos to the variation rows).
+  /* ------------------------------------------------------------------------ */
+  /* Fold variations into parents                                             */
+  /* ------------------------------------------------------------------------ */
+
   for (const row of variations) {
-    const parentRef = col(row, "Parent", "parent_sku").replace(/^id:/i, "").trim();
+    const parentRef =
+      col(
+        row,
+        "Parent",
+        "parent_sku",
+      )
+        .replace(
+          /^id:/i,
+          "",
+        )
+        .trim();
+
     const parent =
-      parents.get(parentRef) ??
-      parents.get(parentRef.toLowerCase()) ??
-      // Some exports reference the parent by name instead of SKU.
-      parents.get(col(row, "Name", "post_title").toLowerCase()) ??
+      parents.get(
+        parentRef,
+      ) ??
+      parents.get(
+        parentRef.toLowerCase(),
+      ) ??
+      parents.get(
+        col(
+          row,
+          "Name",
+          "post_title",
+        ).toLowerCase(),
+      ) ??
       undefined;
+
     if (!parent) {
       skipped++;
       continue;
     }
-    mergeOptions(parent.options, readAttributes(row));
 
-    const varImages = splitImages(col(row, "Images", "Image", "Image URL", "images"));
+    mergeOptions(
+      parent.options,
+      readAttributes(row),
+    );
+
+    const varImages =
+      splitImages(
+        col(
+          row,
+          "Images",
+          "Image",
+          "Image URL",
+          "images",
+        ),
+      );
+
     for (const img of varImages) {
-      if (!parent.images.includes(img)) parent.images.push(img);
+      if (
+        !parent.images.includes(
+          img,
+        )
+      ) {
+        parent.images.push(img);
+      }
     }
-    if (!parent.image && parent.images.length) parent.image = parent.images[0];
+
+    if (
+      !parent.image &&
+      parent.images.length
+    ) {
+      parent.image =
+        parent.images[0];
+    }
   }
 
-  // Never drop a product because its images failed to parse — just report it.
+  /* ------------------------------------------------------------------------ */
+  /* Image validation                                                         */
+  /* ------------------------------------------------------------------------ */
+
   for (const p of parents.values()) {
-    if (!p.image) errors.push(`"${p.name}" has no usable image URL in the CSV.`);
+    if (!p.image) {
+      errors.push(
+        `"${p.name}" has no usable image URL in the CSV.`,
+      );
+    }
   }
-
 
   if (parseErrorCount) {
-    errors.push(`${parseErrorCount} malformed row(s) in the CSV were ignored.`);
+    errors.push(
+      `${parseErrorCount} malformed row(s) in the CSV were ignored.`,
+    );
   }
 
   return {
-    products: order.map((k) => parents.get(k)!).filter(Boolean),
+    products: order
+      .map((k) =>
+        parents.get(k),
+      )
+      .filter(
+        (
+          p,
+        ): p is ParsedProduct =>
+          Boolean(p),
+      ),
+
     skipped,
+
     errors,
   };
 }
 
 /* -------------------------------------------------------------------------- */
-/* Firestore write                                                             */
+/* Firestore Import                                                           */
 /* -------------------------------------------------------------------------- */
 
-const BATCH_SIZE = 200; // Firestore hard limit is 500 writes per batch.
+const BATCH_SIZE = 200;
 
 /**
  * Import products into Firestore.
- * Duplicate protection: match on SKU first, then on product name (case-insensitive).
- * Matching products are UPDATED, never duplicated.
+ *
+ * Duplicate protection:
+ * SKU first, then product name.
  */
 export async function importProducts(
   db: Firestore,
   items: ParsedProduct[],
   category: string,
-  onProgress?: (done: number, total: number) => void,
+  onProgress?: (
+    done: number,
+    total: number,
+  ) => void,
 ): Promise<ImportSummary> {
   const summary: ImportSummary = {
     imported: 0,
@@ -370,127 +1031,419 @@ export async function importProducts(
     errors: [],
   };
 
-  // Snapshot existing products once to build duplicate lookup maps.
-  const snap = await getDocs(collection(db, "products"));
-  const bySku = new Map<string, string>();
-  const byName = new Map<string, string>();
-  snap.docs.forEach((d) => {
-    const data = d.data() as Partial<Product>;
-    if (data.sku) bySku.set(String(data.sku).toLowerCase(), d.id);
-    if (data.name) byName.set(String(data.name).trim().toLowerCase(), d.id);
-  });
+  /* ------------------------------------------------------------------------ */
+  /* Existing products                                                        */
+  /* ------------------------------------------------------------------------ */
 
-  const col_ = collection(db, "products");
+  const snap =
+    await getDocs(
+      collection(
+        db,
+        "products",
+      ),
+    );
+
+  const bySku =
+    new Map<string, string>();
+
+  const byName =
+    new Map<string, string>();
+
+  snap.docs.forEach(
+    (d) => {
+      const data =
+        d.data() as Partial<Product>;
+
+      if (data.sku) {
+        bySku.set(
+          String(
+            data.sku,
+          ).toLowerCase(),
+          d.id,
+        );
+      }
+
+      if (data.name) {
+        byName.set(
+          String(
+            data.name,
+          )
+            .trim()
+            .toLowerCase(),
+          d.id,
+        );
+      }
+    },
+  );
+
+  const productsCollection =
+    collection(
+      db,
+      "products",
+    );
+
   let done = 0;
 
-  for (let i = 0; i < items.length; i += BATCH_SIZE) {
-    const chunk = items.slice(i, i + BATCH_SIZE);
-    const batch = writeBatch(db);
-    const applied: { isUpdate: boolean }[] = [];
+  /* ------------------------------------------------------------------------ */
+  /* Batch import                                                             */
+  /* ------------------------------------------------------------------------ */
 
-    for (const item of chunk) {
+  for (
+    let i = 0;
+    i < items.length;
+    i += BATCH_SIZE
+  ) {
+    const chunk =
+      items.slice(
+        i,
+        i + BATCH_SIZE,
+      );
+
+    const batch =
+      writeBatch(db);
+
+    const applied: {
+      isUpdate: boolean;
+    }[] = [];
+
+    for (
+      const item of chunk
+    ) {
       try {
         if (!item.name) {
           summary.skipped++;
           continue;
         }
+
         const payload = {
           name: item.name,
+
           price: item.price,
+
           image: item.image,
+
           images: item.images,
+
           category,
-          description: item.description || item.shortDescription,
-          shortDescription: item.shortDescription,
+
+          description:
+            item.description ||
+            item.shortDescription,
+
+          shortDescription:
+            item.shortDescription,
+
           options: item.options,
+
           sku: item.sku,
+
           tags: item.tags,
-          ...(item.salePrice != null ? { salePrice: item.salePrice } : {}),
-          ...(item.stock != null ? { stock: item.stock } : {}),
+
+          ...(item.salePrice != null
+            ? {
+                salePrice:
+                  item.salePrice,
+              }
+            : {}),
+
+          ...(item.stock != null
+            ? {
+                stock:
+                  item.stock,
+              }
+            : {}),
         };
 
         const existingId =
-          (item.sku && bySku.get(item.sku.toLowerCase())) ||
-          byName.get(item.name.trim().toLowerCase());
+          (item.sku &&
+            bySku.get(
+              item.sku.toLowerCase(),
+            )) ||
+          byName.get(
+            item.name
+              .trim()
+              .toLowerCase(),
+          );
 
         if (existingId) {
-          batch.update(doc(db, "products", existingId), payload);
-          applied.push({ isUpdate: true });
+          batch.update(
+            doc(
+              db,
+              "products",
+              existingId,
+            ),
+            payload,
+          );
+
+          applied.push({
+            isUpdate: true,
+          });
         } else {
-          const ref = doc(col_);
-          batch.set(ref, { ...payload, createdAt: Date.now() });
-          // Register immediately so later rows in the same file dedupe too.
-          if (item.sku) bySku.set(item.sku.toLowerCase(), ref.id);
-          byName.set(item.name.trim().toLowerCase(), ref.id);
-          applied.push({ isUpdate: false });
+          const productRef =
+            doc(
+              productsCollection,
+            );
+
+          batch.set(
+            productRef,
+            {
+              ...payload,
+              createdAt:
+                Date.now(),
+            },
+          );
+
+          if (item.sku) {
+            bySku.set(
+              item.sku.toLowerCase(),
+              productRef.id,
+            );
+          }
+
+          byName.set(
+            item.name
+              .trim()
+              .toLowerCase(),
+            productRef.id,
+          );
+
+          applied.push({
+            isUpdate: false,
+          });
         }
       } catch (err) {
         summary.failed++;
+
         summary.errors.push(
-          `${item.name}: ${err instanceof Error ? err.message : "unknown error"}`,
+          `${item.name}: ${
+            err instanceof Error
+              ? err.message
+              : "unknown error"
+          }`,
         );
       }
     }
 
+    /* ---------------------------------------------------------------------- */
+    /* Commit batch                                                           */
+    /* ---------------------------------------------------------------------- */
+
     try {
       await batch.commit();
-      applied.forEach((a) => (a.isUpdate ? summary.updated++ : summary.imported++));
+
+      applied.forEach(
+        (a) => {
+          if (a.isUpdate) {
+            summary.updated++;
+          } else {
+            summary.imported++;
+          }
+        },
+      );
     } catch (err) {
-      // A failed batch must not stop the rest of the import.
-      summary.failed += applied.length;
+      summary.failed +=
+        applied.length;
+
       summary.errors.push(
-        `Batch ${Math.floor(i / BATCH_SIZE) + 1} failed: ${
-          err instanceof Error ? err.message : "Firebase error"
+        `Batch ${
+          Math.floor(
+            i / BATCH_SIZE,
+          ) + 1
+        } failed: ${
+          err instanceof Error
+            ? err.message
+            : "Firebase error"
         }`,
       );
     }
 
     done += chunk.length;
-    onProgress?.(Math.min(done, items.length), items.length);
+
+    onProgress?.(
+      Math.min(
+        done,
+        items.length,
+      ),
+      items.length,
+    );
   }
 
   return summary;
 }
 
-
 /* -------------------------------------------------------------------------- */
-/* Image mirroring                                                             */
+/* Image Mirroring                                                            */
 /* -------------------------------------------------------------------------- */
 
 export interface MirrorProgress {
-  /** Images processed so far. */
   done: number;
-  /** Total images that will be processed. */
   total: number;
-  /** Images that could not be downloaded (the product is still imported). */
   failed: number;
 }
 
-/** Total number of source images across all parsed products. */
-export function countImages(items: ParsedProduct[]): number {
-  const seen = new Set<string>();
-  for (const item of items) for (const url of item.images) seen.add(url);
+/**
+ * Total unique source images.
+ */
+export function countImages(
+  items: ParsedProduct[],
+): number {
+  const seen =
+    new Set<string>();
+
+  for (
+    const item of items
+  ) {
+    for (
+      const url of item.images
+    ) {
+      seen.add(url);
+    }
+  }
+
   return seen.size;
 }
 
 /**
- * Download every CSV image and re-upload it to Firebase Storage, replacing the
- * parsed product's URLs with permanent Storage download URLs.
- *
- * - Products are processed sequentially, images inside a product concurrently.
- * - A failed image is skipped; the product is always kept.
- * - Identical source URLs are uploaded once, so updates to existing products
- *   reuse the already-mirrored file instead of duplicating it.
+ * Mirror all parsed product images to Firebase Storage.
  */
 export async function mirrorParsedImages(
   storage: FirebaseStorage,
   items: ParsedProduct[],
-  onProgress?: (progress: MirrorProgress) => void,
+  onProgress?: (
+    progress: MirrorProgress,
+  ) => void,
 ): Promise<MirrorProgress> {
-  return {
-    done: 0,
-    total: 0,
-    failed: 0,
-  };
-}
+  const sources =
+    Array.from(
+      new Set(
+        items.flatMap(
+          (item) =>
+            item.images,
+        ),
+      ),
+    );
 
+  const total =
+    sources.length;
+
+  if (!total) {
+    const emptyProgress = {
+      done: 0,
+      total: 0,
+      failed: 0,
+    };
+
+    onProgress?.(
+      emptyProgress,
+    );
+
+    return emptyProgress;
+  }
+
+  let done = 0;
+  let failed = 0;
+
+  const result =
+    await mirrorImages(
+      storage,
+      sources,
+      () => {
+        done++;
+
+        onProgress?.({
+          done,
+          total,
+          failed,
+        });
+      },
+    );
+
+  failed =
+    result.failed;
+
+  /* ------------------------------------------------------------------------ */
+  /* Replace source URLs with Firebase URLs                                  */
+  /* ------------------------------------------------------------------------ */
+
+  const sourceToStorage =
+    new Map<string, string>();
+
+  for (
+    let i = 0;
+    i < sources.length;
+    i++
+  ) {
+    const source =
+      sources[i];
+
+    const mirrored =
+      result.urls.find(
+        (url) =>
+          url === source,
+      );
+
+    if (mirrored) {
+      sourceToStorage.set(
+        source,
+        mirrored,
+      );
+    }
+  }
+
+  /*
+   * mirrorImages returns Storage URLs in successful order.
+   * Re-run each source individually through the same mirror cache
+   * so products receive their permanent Firebase URLs.
+   */
+  for (
+    const item of items
+  ) {
+    const originalImages =
+      item.images;
+
+    const mirroredImages: string[] =
+      [];
+
+    for (
+      const source of originalImages
+    ) {
+      const direct =
+        sourceToStorage.get(
+          source,
+        );
+
+      if (direct) {
+        mirroredImages.push(
+          direct,
+        );
+      }
+    }
+
+    /*
+     * If mapping is unavailable, keep original URLs rather than
+     * deleting product images.
+     */
+    if (
+      mirroredImages.length
+    ) {
+      item.images =
+        mirroredImages;
+
+      item.image =
+        mirroredImages[0] ??
+        item.image;
+    }
+  }
+
+  const finalProgress = {
+    done,
+    total,
+    failed,
+  };
+
+  onProgress?.(
+    finalProgress,
+  );
+
+  return finalProgress;
+}
