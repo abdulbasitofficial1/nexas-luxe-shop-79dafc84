@@ -757,24 +757,39 @@ export function mapRows(
       "sku",
     );
 
-    const basePrice = num(
-      col(
-        row,
-        "Regular price",
-        "regular_price",
-        "Price",
-      ),
-    );
+   const basePrice = num(
+  col(
+    row,
+    "Regular price",
+    "regular_price",
+    "Price",
+    "Regular Price",
+    "RegularPrice",
+    "Product Price",
+    "Product price",
+    "Selling Price",
+    "Selling price",
+    "Cost Price",
+    "Cost price",
+    "Purchase Price",
+    "Purchase price",
+  ),
+);
 
-    const salePriceRaw = num(
-      col(
-        row,
-        "Sale price",
-        "sale_price",
-      ),
-    );
+const salePriceRaw = num(
+  col(
+    row,
+    "Sale price",
+    "sale_price",
+    "Sale Price",
+    "Discounted Price",
+    "Discounted price",
+    "Selling Price",
+    "Selling price",
+  ),
+);
 
-    const images =
+const images =
       splitImages(
         col(
           row,
