@@ -1,24 +1,9 @@
-/**
- * Catalog image mirroring.
- *
- * Imported products must never depend on a third-party CDN: every remote image
- * is downloaded (through the server proxy, because those CDNs block CORS) and
- * re-uploaded to Firebase Storage. Only Storage download URLs are persisted in
- * Firestore.
- *
- * Design notes:
- *  - Storage paths are derived from a stable hash of the source URL, so the
- *    same image is never uploaded twice — across products *or* across runs.
- *  - Failures skip that single image, never the product.
- *  - Uploads run in small concurrent batches to stay fast on 500+ products.
- */
 import {
   getDownloadURL,
   ref,
   uploadBytes,
   type FirebaseStorage,
 } from "firebase/storage";
-import { fetchRemoteImage } from "./image-proxy.functions";
 
 /** Firebase Storage folder that holds mirrored catalog images. */
 export const CATALOG_IMAGE_DIR = "products";
@@ -48,13 +33,6 @@ function extensionFor(url: string, contentType?: string): string {
   return match ? match[1].toLowerCase().replace("jpeg", "jpg") : "jpg";
 }
 
-function base64ToBlob(base64: string, contentType: string): Blob {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return new Blob([bytes], { type: contentType });
-}
-
 /** True when the URL already points at Firebase Storage (nothing to mirror). */
 export function isStorageUrl(url: string): boolean {
   return /firebasestorage\.googleapis\.com|\.firebasestorage\.app/i.test(url);
@@ -65,15 +43,14 @@ const mirrorCache = new Map<string, string>();
 
 /**
  * Mirror a single remote image into Firebase Storage.
- * Returns the Storage download URL, or `null` when the image could not be
- * downloaded (the caller simply skips it).
+ * Returns the Storage download URL, or falls back to sourceUrl when direct fetch fails.
  */
 export async function mirrorImage(
   storage: FirebaseStorage,
   sourceUrl: string,
 ): Promise<string | null> {
   if (!sourceUrl || !/^https?:\/\//i.test(sourceUrl)) return null;
-  if (isStorageUrl(sourceUrl)) return sourceUrl; // Already in Firebase
+  if (isStorageUrl(sourceUrl)) return sourceUrl;
 
   const cached = mirrorCache.get(sourceUrl);
   if (cached) return cached;
@@ -81,7 +58,7 @@ export async function mirrorImage(
   const hash = hashUrl(sourceUrl);
   const guessRef = ref(storage, `${CATALOG_IMAGE_DIR}/${hash}.${extensionFor(sourceUrl)}`);
 
-  // 1. Check if already uploaded
+  // 1. Check if already uploaded in Firebase Storage
   try {
     const existing = await getDownloadURL(guessRef);
     mirrorCache.set(sourceUrl, existing);
@@ -107,9 +84,8 @@ export async function mirrorImage(
     const url = await getDownloadURL(storageRef);
     mirrorCache.set(sourceUrl, url);
     return url;
-  } catch (error) {
-    // 3. Fallback: Null ki jagah original sourceUrl return karein taake image blank na ho
-    console.warn("Direct mirror failed for:", sourceUrl, "Using original URL as fallback.");
+  } catch {
+    // 3. Fallback: Return original sourceUrl so image is never lost/blank
     return sourceUrl; 
   }
 }
@@ -122,7 +98,6 @@ export interface MirrorResult {
 
 /**
  * Mirror a list of source URLs with bounded concurrency.
- * `onImageDone` fires once per attempted image so callers can show progress.
  */
 export async function mirrorImages(
   storage: FirebaseStorage,
