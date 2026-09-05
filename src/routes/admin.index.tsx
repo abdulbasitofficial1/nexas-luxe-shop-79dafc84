@@ -105,11 +105,7 @@ import {
 
 import { reviewImages } from "@/lib/reviews";
 
-import {
-  doc,
-  deleteDoc,
-  writeBatch,
-} from "firebase/firestore";
+import { doc, deleteDoc, writeBatch, updateDoc } from "firebase/firestore";
 
 
 export const Route = createFileRoute("/admin/")({
