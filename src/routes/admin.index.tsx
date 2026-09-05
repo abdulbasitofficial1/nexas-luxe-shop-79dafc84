@@ -64,7 +64,7 @@ import { useChatThreads, unreadTotal } from "@/lib/chat";
 import { usePresenceHeartbeat, ADMIN_PRESENCE_ID } from "@/lib/presence";
 import { reviewImages } from "@/lib/reviews";
 
-import { updateDoc, doc, deleteDoc } from "firebase/firestore";
+import { updateDoc, doc, deleteDoc, writeBatch } from "firebase/firestore";
 
 export const Route = createFileRoute("/admin/")({
   component: Admin,
