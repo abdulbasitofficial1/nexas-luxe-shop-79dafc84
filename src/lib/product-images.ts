@@ -73,45 +73,44 @@ export async function mirrorImage(
   sourceUrl: string,
 ): Promise<string | null> {
   if (!sourceUrl || !/^https?:\/\//i.test(sourceUrl)) return null;
-  if (isStorageUrl(sourceUrl)) return sourceUrl; // already ours
+  if (isStorageUrl(sourceUrl)) return sourceUrl; // Already in Firebase
+
   const cached = mirrorCache.get(sourceUrl);
   if (cached) return cached;
 
   const hash = hashUrl(sourceUrl);
-
-  // 1) Already uploaded in a previous run? Reuse it — no duplicate upload.
   const guessRef = ref(storage, `${CATALOG_IMAGE_DIR}/${hash}.${extensionFor(sourceUrl)}`);
+
+  // 1. Check if already uploaded
   try {
     const existing = await getDownloadURL(guessRef);
     mirrorCache.set(sourceUrl, existing);
     return existing;
   } catch {
-    /* not uploaded yet — continue */
+    /* Not uploaded yet — continue */
   }
 
-  // 2) Download through the server proxy (CDNs block browser CORS).
-  let payload: Awaited<ReturnType<typeof fetchRemoteImage>>;
+  // 2. Direct client fetch & upload attempt
   try {
-    payload = await fetchRemoteImage({ data: { url: sourceUrl } });
-  } catch {
-    return null;
-  }
-  if (!payload.ok) return null;
-
-  // 3) Upload to Storage and return the permanent download URL.
-  try {
-    const blob = base64ToBlob(payload.base64, payload.contentType);
-    const path = `${CATALOG_IMAGE_DIR}/${hash}.${extensionFor(sourceUrl, payload.contentType)}`;
+    const response = await fetch(sourceUrl, { mode: "cors" });
+    if (!response.ok) throw new Error("Fetch failed");
+    
+    const blob = await response.blob();
+    const path = `${CATALOG_IMAGE_DIR}/${hash}.${extensionFor(sourceUrl, blob.type)}`;
     const storageRef = ref(storage, path);
+
     await uploadBytes(storageRef, blob, {
-      contentType: payload.contentType,
+      contentType: blob.type || "image/jpeg",
       cacheControl: "public,max-age=31536000,immutable",
     });
+
     const url = await getDownloadURL(storageRef);
     mirrorCache.set(sourceUrl, url);
     return url;
-  } catch {
-    return null;
+  } catch (error) {
+    // 3. Fallback: Null ki jagah original sourceUrl return karein taake image blank na ho
+    console.warn("Direct mirror failed for:", sourceUrl, "Using original URL as fallback.");
+    return sourceUrl; 
   }
 }
 
