@@ -43,6 +43,14 @@ export function ProductCard({ product }: { product: Product }) {
   const pricing = engine?.priceFor(product) ?? null;
   const effectiveProduct: Product = pricing ? { ...product, price: pricing.final } : product;
 
+  // Multi-field image URL resolver
+  const imageUrl =
+    product.image ||
+    (Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : null) ||
+    (product as any).imageUrl ||
+    (product as any).img ||
+    "/placeholder.svg";
+
   const toggleWishlist = async () => {
     if (!user || !db) {
       toast.error("Please login to save items to your wishlist.");
@@ -57,7 +65,7 @@ export function ProductCard({ product }: { product: Product }) {
           id: product.id,
           name: product.name,
           price: product.price,
-          image: product.image,
+          image: imageUrl,
         });
         toast.success("Added to wishlist");
       }
@@ -88,7 +96,7 @@ export function ProductCard({ product }: { product: Product }) {
             aria-label={product.name}
           >
             <ProductImage
-              src={product.image || product.images?.[0]}
+              src={imageUrl}
               alt={product.name}
               loading="lazy"
               decoding="async"
@@ -171,7 +179,7 @@ export function ProductCard({ product }: { product: Product }) {
             <DialogDescription>{product.category}</DialogDescription>
           </DialogHeader>
           <ProductImage
-            src={product.image || product.images?.[0]}
+            src={imageUrl}
             alt={product.name}
             className="aspect-square w-full rounded-xl object-cover"
           />
