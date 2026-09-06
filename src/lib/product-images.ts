@@ -4,6 +4,8 @@ import {
   uploadBytes,
   type FirebaseStorage,
 } from "firebase/storage";
+import { fetchRemoteImage } from "./image-proxy.functions";
+import { cleanProductImageUrl } from "./product-display";
 
 /** Firebase Storage folder that holds mirrored catalog images. */
 export const CATALOG_IMAGE_DIR = "products";
@@ -35,20 +37,51 @@ function extensionFor(url: string, contentType?: string): string {
 
 /** True when the URL already points at Firebase Storage (nothing to mirror). */
 export function isStorageUrl(url: string): boolean {
-  return /firebasestorage\.googleapis\.com|\.firebasestorage\.app/i.test(url);
+  return /firebasestorage\.googleapis\.com|\.firebasestorage\.app|storage\.googleapis\.com/i.test(url);
 }
 
 /** In-memory cache: source URL → Storage download URL (per page session). */
 const mirrorCache = new Map<string, string>();
 
+/** Decode a base64 payload (from the server proxy) into a Blob. */
+function base64ToBlob(base64: string, contentType: string): Blob {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: contentType });
+}
+
+/** Fetch the image bytes: direct CORS fetch first, then the server-side proxy. */
+async function downloadImage(sourceUrl: string): Promise<Blob | null> {
+  try {
+    const response = await fetch(sourceUrl, { mode: "cors" });
+    if (response.ok) {
+      const blob = await response.blob();
+      if (blob.size > 0 && (!blob.type || blob.type.startsWith("image/"))) return blob;
+    }
+  } catch {
+    /* CORS blocked or network error — fall through to the proxy */
+  }
+
+  try {
+    const result = await fetchRemoteImage({ data: { url: sourceUrl } });
+    if (result.ok) return base64ToBlob(result.base64, result.contentType);
+  } catch {
+    /* proxy failed too */
+  }
+  return null;
+}
+
 /**
  * Mirror a single remote image into Firebase Storage.
- * Returns the Storage download URL, or falls back to sourceUrl when direct fetch fails.
+ * Returns the Storage download URL, or `null` when the image could not be
+ * downloaded/uploaded. Storage URLs are returned unchanged.
  */
 export async function mirrorImage(
   storage: FirebaseStorage,
-  sourceUrl: string,
+  rawSourceUrl: string,
 ): Promise<string | null> {
+  const sourceUrl = cleanProductImageUrl(rawSourceUrl);
   if (!sourceUrl || !/^https?:\/\//i.test(sourceUrl)) return null;
   if (isStorageUrl(sourceUrl)) return sourceUrl;
 
@@ -56,37 +89,35 @@ export async function mirrorImage(
   if (cached) return cached;
 
   const hash = hashUrl(sourceUrl);
-  const guessRef = ref(storage, `${CATALOG_IMAGE_DIR}/${hash}.${extensionFor(sourceUrl)}`);
 
-  // 1. Check if already uploaded in Firebase Storage
+  // 1. Already uploaded in a previous run?
   try {
-    const existing = await getDownloadURL(guessRef);
+    const existing = await getDownloadURL(
+      ref(storage, `${CATALOG_IMAGE_DIR}/${hash}.${extensionFor(sourceUrl)}`),
+    );
     mirrorCache.set(sourceUrl, existing);
     return existing;
   } catch {
     /* Not uploaded yet — continue */
   }
 
-  // 2. Direct client fetch & upload attempt
-  try {
-    const response = await fetch(sourceUrl, { mode: "cors" });
-    if (!response.ok) throw new Error("Fetch failed");
-    
-    const blob = await response.blob();
-    const path = `${CATALOG_IMAGE_DIR}/${hash}.${extensionFor(sourceUrl, blob.type)}`;
-    const storageRef = ref(storage, path);
+  // 2. Download (direct or via proxy) and upload.
+  const blob = await downloadImage(sourceUrl);
+  if (!blob) return null;
 
+  try {
+    const contentType = blob.type || "image/jpeg";
+    const path = `${CATALOG_IMAGE_DIR}/${hash}.${extensionFor(sourceUrl, contentType)}`;
+    const storageRef = ref(storage, path);
     await uploadBytes(storageRef, blob, {
-      contentType: blob.type || "image/jpeg",
+      contentType,
       cacheControl: "public,max-age=31536000,immutable",
     });
-
     const url = await getDownloadURL(storageRef);
     mirrorCache.set(sourceUrl, url);
     return url;
   } catch {
-    // 3. Fallback: Return original sourceUrl so image is never lost/blank
-    return sourceUrl; 
+    return null;
   }
 }
 
@@ -105,7 +136,7 @@ export async function mirrorImages(
   onImageDone?: () => void,
   concurrency = IMAGE_CONCURRENCY,
 ): Promise<MirrorResult> {
-  const unique = Array.from(new Set(sources.filter(Boolean)));
+  const unique = Array.from(new Set(sources.map((s) => cleanProductImageUrl(s)).filter(Boolean)));
   const results = new Array<string | null>(unique.length).fill(null);
   let cursor = 0;
 
@@ -123,4 +154,32 @@ export async function mirrorImages(
 
   const urls = results.filter((u): u is string => Boolean(u));
   return { urls, failed: unique.length - urls.length };
+}
+
+/**
+ * Mirror a set of source URLs and return a lookup map (source → Storage URL).
+ * Failed sources are simply absent from the map.
+ */
+export async function mirrorImageMap(
+  storage: FirebaseStorage,
+  sources: string[],
+  onImageDone?: () => void,
+  concurrency = IMAGE_CONCURRENCY,
+): Promise<Map<string, string>> {
+  const unique = Array.from(new Set(sources.map((s) => cleanProductImageUrl(s)).filter(Boolean)));
+  const map = new Map<string, string>();
+  let cursor = 0;
+
+  const worker = async () => {
+    while (cursor < unique.length) {
+      const index = cursor++;
+      const src = unique[index];
+      const url = await mirrorImage(storage, src);
+      if (url) map.set(src, url);
+      onImageDone?.();
+    }
+  };
+
+  await Promise.all(Array.from({ length: Math.min(concurrency, unique.length) }, worker));
+  return map;
 }
