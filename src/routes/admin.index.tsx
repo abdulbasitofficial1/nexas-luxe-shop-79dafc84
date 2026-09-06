@@ -1790,14 +1790,6 @@ function ProductFormDialog({
     setInitId(null);
   }
 
-  const setImage = (i: number, value: string) =>
-    setForm((f) => ({
-      ...f,
-      images: f.images.map((img, idx) =>
-        idx === i ? value : img,
-      ),
-    }));
-
   const addImage = () =>
     setForm((f) => ({
       ...f,
