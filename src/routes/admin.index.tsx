@@ -1757,24 +1757,6 @@ function ProductFormDialog({
       ),
     }));
 
-
-  const { db, storage } = useFirebase();
-
-  const [form, setForm] = useState<ProductFormState>(emptyProduct);
-  const [saving, setSaving] = useState(false);
-  const [initId, setInitId] = useState<string | null>(null);
-
-  const [uploads, setUploads] = useState<
-    {
-      name: string;
-      percent: number;
-    }[]
-  >([]);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const targetId = editing?.id ?? "new";
-
   if (open && initId !== targetId) {
     setInitId(targetId);
 
