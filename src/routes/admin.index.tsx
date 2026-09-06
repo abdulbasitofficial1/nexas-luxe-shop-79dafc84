@@ -1758,15 +1758,6 @@ function ProductFormDialog({
     }));
 
 
- function ProductFormDialog({
-  open,
-  onOpenChange,
-  editing,
-}: {
-  open: boolean;
-  onOpenChange: (o: boolean) => void;
-  editing: Product | null;
-}) {
   const { db, storage } = useFirebase();
 
   const [form, setForm] = useState<ProductFormState>(emptyProduct);
