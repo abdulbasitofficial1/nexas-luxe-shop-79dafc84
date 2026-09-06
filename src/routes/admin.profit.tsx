@@ -548,7 +548,7 @@ function ProfitRow({
           `Are you sure you want to delete this profit record?\n\nProduct: ${row.productName}\nProfit: ${rs(row.profitAmount)}\n\nThis will NOT delete the original order.`,
         );
 
-      if (!confirmed) return;
+      if (!confirmed || !db) return;
 
       try {
         setDeleting(true);

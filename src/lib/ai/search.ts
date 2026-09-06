@@ -2,6 +2,7 @@ import type { Product } from "../types";
 
 export interface ProductSearchQuery {
   text: string;
+  minPrice?: number;
   maxPrice?: number;
   category?: string;
   keywords?: string[];
@@ -91,6 +92,12 @@ export function searchProducts(
     if (
       typeof query.maxPrice === "number" &&
       Number(product.price) > query.maxPrice
+    ) {
+      continue;
+    }
+    if (
+      typeof query.minPrice === "number" &&
+      Number(product.price) < query.minPrice
     ) {
       continue;
     }
