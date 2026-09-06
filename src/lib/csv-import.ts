@@ -19,6 +19,7 @@ import {
   type Firestore,
 } from "firebase/firestore";
 import type { FirebaseStorage } from "firebase/storage";
+import { mirrorImageMap } from "./product-images";
 
 import type { Product, ProductOption } from "./types";
 
@@ -1373,9 +1374,36 @@ export async function mirrorParsedImages(
   items: ParsedProduct[],
   onProgress?: (progress: MirrorProgress) => void,
 ): Promise<MirrorProgress> {
-  return {
-    done: 0,
-    total: 0,
-    failed: 0,
-  };
+  const sources: string[] = [];
+  for (const item of items) {
+    for (const url of [...(item.images ?? []), item.image]) {
+      if (url) sources.push(url);
+    }
+  }
+  const unique = Array.from(new Set(sources));
+  const progress: MirrorProgress = { done: 0, total: unique.length, failed: 0 };
+  onProgress?.({ ...progress });
+  if (!unique.length) return progress;
+
+  const map = await mirrorImageMap(storage, unique, () => {
+    progress.done += 1;
+    onProgress?.({ ...progress });
+  });
+  progress.failed = unique.length - map.size;
+
+  for (const item of items) {
+    const mirrored: string[] = [];
+    for (const raw of [...(item.images ?? []), item.image]) {
+      const url = raw ? map.get(raw) : undefined;
+      if (url && !mirrored.includes(url)) mirrored.push(url);
+    }
+    // Keep the original remote URLs only when nothing could be mirrored,
+    // so a product never ends up with zero images.
+    if (mirrored.length) {
+      item.images = mirrored;
+      item.image = mirrored[0];
+    }
+  }
+  onProgress?.({ ...progress });
+  return progress;
 }
