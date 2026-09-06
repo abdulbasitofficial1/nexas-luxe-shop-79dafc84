@@ -1488,6 +1488,11 @@ function ProductsPanel() {
         categories={categories}
       />
 
+      <BulkAddProductsDialog
+  open={bulkOpen}
+  onOpenChange={setBulkOpen}
+  categories={categories}
+      />
     </div>
   );
 }
