@@ -20,8 +20,8 @@ import {
 } from "lucide-react";
 
 import { ImportProductsDialog } from "@/components/nexas/admin/ImportProductsDialog";
-import { BulkAddProductsDialog } from "@/components/admin/BulkAddProductsDialog";
-import { RepairImagesDialog } from "@/components/admin/RepairImagesDialog";
+import { BulkAddProductsDialog } from "@/components/nexas/admin/BulkAddProductsDialog";
+import { RepairImagesDialog } from "@/components/nexas/admin/RepairImagesDialog";;
 import { ChatsPanel } from "@/components/nexas/admin/ChatsPanel";
 
 import { Button } from "@/components/ui/button";
