@@ -1501,42 +1501,26 @@ function ProductFormDialog({
   onOpenChange: (o: boolean) => void;
   editing: Product | null;
 }) {
+  const { db, storage } = useFirebase();
 
-  const { db, storage } =
-    useFirebase();
+  const [form, setForm] = useState<ProductFormState>(emptyProduct);
 
-  const [form, setForm] =
-    useState<ProductFormState>(
-      emptyProduct,
-    );
+  const [saving, setSaving] = useState(false);
 
-  const [saving, setSaving] =
-    useState(false);
+  const [initId, setInitId] = useState<string | null>(null);
 
-  const [initId, setInitId] =
-    useState<string | null>(null);
+  const [uploads, setUploads] = useState<
+    {
+      name: string;
+      percent: number;
+    }[]
+  >([]);
 
-  const [uploads, setUploads] =
-    useState<
-      {
-        name: string;
-        percent: number;
-      }[]
-    >([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const fileInputRef =
-    useRef<HTMLInputElement>(null);
+  const targetId = editing?.id ?? "new";
 
-
-  const targetId =
-    editing?.id ?? "new";
-
-
-  if (
-    open &&
-    initId !== targetId
-  ) {
-
+  if (open && initId !== targetId) {
     setInitId(targetId);
 
     setForm(
@@ -1545,27 +1529,17 @@ function ProductFormDialog({
             name: editing.name,
             price: editing.price,
             category: editing.category,
-            description:
-              editing.description,
+            description: editing.description,
             images:
-              editing.images &&
-              editing.images.length
+              editing.images && editing.images.length
                 ? [...editing.images]
-                : [
-                    editing.image ||
-                      "",
-                  ],
-            options:
-              editing.options
-                ? editing.options.map(
-                    (o) => ({
-                      ...o,
-                      values: [
-                        ...o.values,
-                      ],
-                    }),
-                  )
-                : [],
+                : [editing.image || ""],
+            options: editing.options
+              ? editing.options.map((o) => ({
+                  ...o,
+                  values: [...o.values],
+                }))
+              : [],
           }
         : {
             ...emptyProduct,
@@ -1575,102 +1549,56 @@ function ProductFormDialog({
     );
   }
 
-
-  if (
-    !open &&
-    initId !== null
-  ) {
+  if (!open && initId !== null) {
     setInitId(null);
   }
 
-
-  const setImage = (
-    i: number,
-    value: string,
-  ) =>
+  const setImage = (i: number, value: string) =>
     setForm((f) => ({
       ...f,
-      images: f.images.map(
-        (img, idx) =>
-          idx === i
-            ? value
-            : img,
+      images: f.images.map((img, idx) =>
+        idx === i ? value : img,
       ),
     }));
-
 
   const addImage = () =>
     setForm((f) => ({
       ...f,
-      images: [
-        ...f.images,
-        "",
-      ],
+      images: [...f.images, ""],
     }));
 
-
-  const removeImage = (
-    i: number,
-  ) =>
+  const removeImage = (i: number) =>
     setForm((f) => ({
       ...f,
-      images: f.images.filter(
-        (_, idx) =>
-          idx !== i,
-      ),
+      images: f.images.filter((_, idx) => idx !== i),
     }));
 
-
-  const handleFiles = async (
-    files: FileList | null,
-  ) => {
-
-    if (
-      !files ||
-      files.length === 0
-    ) {
+  const handleFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) {
       return;
     }
-
 
     if (!storage) {
-
-      toast.error(
-        "Storage not connected.",
-      );
-
+      toast.error("Storage not connected.");
       return;
     }
 
-
-    const list =
-      Array.from(files);
-
+    const list = Array.from(files);
     const valid: File[] = [];
 
-
     for (const file of list) {
-
-      const err =
-        validateImageFile(file);
+      const err = validateImageFile(file);
 
       if (err) {
-
         toast.error(err);
-
       } else {
-
         valid.push(file);
-
       }
-
     }
-
 
     if (!valid.length) {
       return;
     }
-
 
     setUploads(
       valid.map((f) => ({
@@ -1679,75 +1607,48 @@ function ProductFormDialog({
       })),
     );
 
-
-    for (
-      let i = 0;
-      i < valid.length;
-      i++
-    ) {
-
+    for (let i = 0; i < valid.length; i++) {
       try {
-
-        const url =
-          await uploadProductFile(
-            storage,
-            valid[i],
-            (percent) =>
-              setUploads((u) =>
-                u.map(
-                  (row, idx) =>
-                    idx === i
-                      ? {
-                          ...row,
-                          percent,
-                        }
-                      : row,
-                ),
+        const url = await uploadProductFile(
+          storage,
+          valid[i],
+          (percent) =>
+            setUploads((u) =>
+              u.map((row, idx) =>
+                idx === i
+                  ? {
+                      ...row,
+                      percent,
+                    }
+                  : row,
               ),
-          );
-
+            ),
+        );
 
         setForm((f) => {
+          const images = [...f.images];
 
-          const images =
-            [...f.images];
-
-          const empty =
-            images.findIndex(
-              (img) =>
-                !img.trim(),
-            );
-
+          const empty = images.findIndex(
+            (img) => !img.trim(),
+          );
 
           if (empty >= 0) {
-
-            images[empty] =
-              url;
-
+            images[empty] = url;
           } else {
-
             images.push(url);
-
           }
-
 
           return {
             ...f,
             images,
           };
-
         });
-
       } catch {
-
         toast.error(
           `Failed to upload ${valid[i].name}`,
         );
-
       }
-
     }
-
 
     setUploads([]);
 
@@ -1757,7 +1658,6 @@ function ProductFormDialog({
         : "Image uploaded",
     );
   };
-
 
   const addOption = () =>
     setForm((f) => ({
@@ -1771,18 +1671,13 @@ function ProductFormDialog({
       ],
     }));
 
-
-  const removeOption = (
-    oi: number,
-  ) =>
+  const removeOption = (oi: number) =>
     setForm((f) => ({
       ...f,
       options: f.options.filter(
-        (_, idx) =>
-          idx !== oi,
+        (_, idx) => idx !== oi,
       ),
     }));
-
 
   const setOptionName = (
     oi: number,
@@ -1790,37 +1685,31 @@ function ProductFormDialog({
   ) =>
     setForm((f) => ({
       ...f,
-      options: f.options.map(
-        (o, idx) =>
-          idx === oi
-            ? {
-                ...o,
-                name,
-              }
-            : o,
+      options: f.options.map((o, idx) =>
+        idx === oi
+          ? {
+              ...o,
+              name,
+            }
+          : o,
       ),
     }));
 
-
-  const addValue = (
-    oi: number,
-  ) =>
+  const addValue = (oi: number) =>
     setForm((f) => ({
       ...f,
-      options: f.options.map(
-        (o, idx) =>
-          idx === oi
-            ? {
-                ...o,
-                values: [
-                  ...o.values,
-                  "",
-                ],
-              }
-            : o,
+      options: f.options.map((o, idx) =>
+        idx === oi
+          ? {
+              ...o,
+              values: [
+                ...o.values,
+                "",
+              ],
+            }
+          : o,
       ),
     }));
-
 
   const setValue = (
     oi: number,
@@ -1829,26 +1718,20 @@ function ProductFormDialog({
   ) =>
     setForm((f) => ({
       ...f,
-      options: f.options.map(
-        (o, idx) =>
-          idx === oi
-            ? {
-                ...o,
-                values:
-                  o.values.map(
-                    (
-                      v,
-                      vIdx,
-                    ) =>
-                      vIdx === vi
-                        ? value
-                        : v,
-                  ),
-              }
-            : o,
+      options: f.options.map((o, idx) =>
+        idx === oi
+          ? {
+              ...o,
+              values: o.values.map(
+                (v, vIdx) =>
+                  vIdx === vi
+                    ? value
+                    : v,
+              ),
+            }
+          : o,
       ),
     }));
-
 
   const removeValue = (
     oi: number,
@@ -1875,105 +1758,324 @@ function ProductFormDialog({
     }));
 
 
+ function ProductFormDialog({
+  open,
+  onOpenChange,
+  editing,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  editing: Product | null;
+}) {
+  const { db, storage } = useFirebase();
+
+  const [form, setForm] = useState<ProductFormState>(emptyProduct);
+  const [saving, setSaving] = useState(false);
+  const [initId, setInitId] = useState<string | null>(null);
+
+  const [uploads, setUploads] = useState<
+    {
+      name: string;
+      percent: number;
+    }[]
+  >([]);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const targetId = editing?.id ?? "new";
+
+  if (open && initId !== targetId) {
+    setInitId(targetId);
+
+    setForm(
+      editing
+        ? {
+            name: editing.name,
+            price: editing.price,
+            category: editing.category,
+            description: editing.description,
+            images:
+              editing.images && editing.images.length
+                ? [...editing.images]
+                : [editing.image || ""],
+            options: editing.options
+              ? editing.options.map((o) => ({
+                  ...o,
+                  values: [...o.values],
+                }))
+              : [],
+          }
+        : {
+            ...emptyProduct,
+            images: [""],
+            options: [],
+          },
+    );
+  }
+
+  if (!open && initId !== null) {
+    setInitId(null);
+  }
+
+  const setImage = (i: number, value: string) =>
+    setForm((f) => ({
+      ...f,
+      images: f.images.map((img, idx) =>
+        idx === i ? value : img,
+      ),
+    }));
+
+  const addImage = () =>
+    setForm((f) => ({
+      ...f,
+      images: [...f.images, ""],
+    }));
+
+  const removeImage = (i: number) =>
+    setForm((f) => ({
+      ...f,
+      images: f.images.filter((_, idx) => idx !== i),
+    }));
+
+  const handleFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) {
+      return;
+    }
+
+    if (!storage) {
+      toast.error("Storage not connected.");
+      return;
+    }
+
+    const list = Array.from(files);
+    const valid: File[] = [];
+
+    for (const file of list) {
+      const err = validateImageFile(file);
+
+      if (err) {
+        toast.error(err);
+      } else {
+        valid.push(file);
+      }
+    }
+
+    if (!valid.length) {
+      return;
+    }
+
+    setUploads(
+      valid.map((f) => ({
+        name: f.name,
+        percent: 0,
+      })),
+    );
+
+    for (let i = 0; i < valid.length; i++) {
+      try {
+        const url = await uploadProductFile(
+          storage,
+          valid[i],
+          (percent) =>
+            setUploads((u) =>
+              u.map((row, idx) =>
+                idx === i
+                  ? {
+                      ...row,
+                      percent,
+                    }
+                  : row,
+              ),
+            ),
+        );
+
+        setForm((f) => {
+          const images = [...f.images];
+
+          const empty = images.findIndex(
+            (img) => !img.trim(),
+          );
+
+          if (empty >= 0) {
+            images[empty] = url;
+          } else {
+            images.push(url);
+          }
+
+          return {
+            ...f,
+            images,
+          };
+        });
+      } catch {
+        toast.error(
+          `Failed to upload ${valid[i].name}`,
+        );
+      }
+    }
+
+    setUploads([]);
+
+    toast.success(
+      valid.length > 1
+        ? "Images uploaded"
+        : "Image uploaded",
+    );
+  };
+
+  const addOption = () =>
+    setForm((f) => ({
+      ...f,
+      options: [
+        ...f.options,
+        {
+          name: "",
+          values: [""],
+        },
+      ],
+    }));
+
+  const removeOption = (oi: number) =>
+    setForm((f) => ({
+      ...f,
+      options: f.options.filter(
+        (_, idx) => idx !== oi,
+      ),
+    }));
+
+  const setOptionName = (
+    oi: number,
+    name: string,
+  ) =>
+    setForm((f) => ({
+      ...f,
+      options: f.options.map((o, idx) =>
+        idx === oi
+          ? {
+              ...o,
+              name,
+            }
+          : o,
+      ),
+    }));
+
+  const addValue = (oi: number) =>
+    setForm((f) => ({
+      ...f,
+      options: f.options.map((o, idx) =>
+        idx === oi
+          ? {
+              ...o,
+              values: [
+                ...o.values,
+                "",
+              ],
+            }
+          : o,
+      ),
+    }));
+
+  const setValue = (
+    oi: number,
+    vi: number,
+    value: string,
+  ) =>
+    setForm((f) => ({
+      ...f,
+      options: f.options.map((o, idx) =>
+        idx === oi
+          ? {
+              ...o,
+              values: o.values.map(
+                (v, vIdx) =>
+                  vIdx === vi
+                    ? value
+                    : v,
+              ),
+            }
+          : o,
+      ),
+    }));
+
+  const removeValue = (
+    oi: number,
+    vi: number,
+  ) =>
+    setForm((f) => ({
+      ...f,
+      options: f.options.map((o, idx) =>
+        idx === oi
+          ? {
+              ...o,
+              values: o.values.filter(
+                (_, vIdx) => vIdx !== vi,
+              ),
+            }
+          : o,
+      ),
+    }));
+
   const submit = async (
     e: React.FormEvent,
   ) => {
-
     e.preventDefault();
-
 
     if (
       !form.name.trim() ||
       !form.category.trim() ||
       form.price <= 0
     ) {
-
       toast.error(
         "Name, price and category are required.",
       );
-
       return;
     }
 
-
-    const images =
-      form.images
-        .map((i) =>
-          i.trim(),
-        )
-        .filter(Boolean);
-
+    const images = form.images
+      .map((i) => i.trim())
+      .filter(Boolean);
 
     if (images.length === 0) {
-
       toast.error(
         "Please add at least one image URL.",
       );
-
       return;
     }
 
-
-    const options =
-      form.options
-        .map((o) => ({
-          name: o.name.trim(),
-
-          values:
-            o.values
-              .map((v) =>
-                v.trim(),
-              )
-              .filter(Boolean),
-        }))
-        .filter(
-          (o) =>
-            o.name &&
-            o.values.length > 0,
-        );
-
+    const options = form.options
+      .map((o) => ({
+        name: o.name.trim(),
+        values: o.values
+          .map((v) => v.trim())
+          .filter(Boolean),
+      }))
+      .filter(
+        (o) =>
+          o.name &&
+          o.values.length > 0,
+      );
 
     if (!db) {
-
       toast.error(
         "Store not connected.",
       );
-
       return;
     }
 
-
     setSaving(true);
 
-
     try {
-
       const payload: ProductInput = {
-
-        name:
-          form.name.trim(),
-
-        price:
-          form.price,
-
-        category:
-          form.category.trim(),
-
-        description:
-          form.description.trim(),
-
-        image:
-          images[0],
-
+        name: form.name.trim(),
+        price: form.price,
+        category: form.category.trim(),
+        description: form.description.trim(),
+        image: images[0],
         images,
-
         options,
-
       };
 
-
       if (editing) {
-
         await updateProduct(
           db,
           editing.id,
@@ -1983,9 +2085,7 @@ function ProductFormDialog({
         toast.success(
           "Product updated",
         );
-
       } else {
-
         await addProduct(
           db,
           payload,
@@ -1994,54 +2094,39 @@ function ProductFormDialog({
         toast.success(
           "Product added",
         );
-
       }
 
-
       onOpenChange(false);
-
     } catch (err) {
-
       toast.error(
         "Failed to save product",
       );
 
       console.error(err);
-
     } finally {
-
       setSaving(false);
-
     }
   };
-
 
   return (
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
     >
-
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-
         <DialogHeader>
-
           <DialogTitle className="font-display text-2xl">
             {editing
               ? "Edit Product"
               : "Add Product"}
           </DialogTitle>
-
         </DialogHeader>
-
 
         <form
           onSubmit={submit}
           className="space-y-5"
         >
-
           <div className="space-y-1.5">
-
             <Label htmlFor="p-name">
               Product Name
             </Label>
@@ -2052,17 +2137,13 @@ function ProductFormDialog({
               onChange={(e) =>
                 setForm({
                   ...form,
-                  name:
-                    e.target.value,
+                  name: e.target.value,
                 })
               }
             />
-
           </div>
 
-
           <div className="space-y-1.5">
-
             <Label htmlFor="p-price">
               Product Price (Rs)
             </Label>
@@ -2071,9 +2152,7 @@ function ProductFormDialog({
               id="p-price"
               type="number"
               min={0}
-              value={
-                form.price || ""
-              }
+              value={form.price || ""}
               onChange={(e) =>
                 setForm({
                   ...form,
@@ -2083,12 +2162,9 @@ function ProductFormDialog({
                 })
               }
             />
-
           </div>
 
-
           <div className="space-y-1.5">
-
             <Label htmlFor="p-cat">
               Category
             </Label>
@@ -2099,17 +2175,13 @@ function ProductFormDialog({
               onChange={(e) =>
                 setForm({
                   ...form,
-                  category:
-                    e.target.value,
+                  category: e.target.value,
                 })
               }
             />
-
           </div>
 
-
           <div className="space-y-1.5">
-
             <Label htmlFor="p-desc">
               Description
             </Label>
@@ -2117,31 +2189,23 @@ function ProductFormDialog({
             <Textarea
               id="p-desc"
               rows={3}
-              value={
-                form.description
-              }
+              value={form.description}
               onChange={(e) =>
                 setForm({
                   ...form,
-                  description:
-                    e.target.value,
+                  description: e.target.value,
                 })
               }
             />
-
           </div>
 
-
           <div className="space-y-3 rounded-lg border border-border/60 p-3">
-
             <div className="flex flex-wrap items-center justify-between gap-2">
-
               <Label>
                 Product Images
               </Label>
 
               <div className="flex flex-wrap gap-2">
-
                 <Button
                   type="button"
                   size="sm"
@@ -2157,7 +2221,6 @@ function ProductFormDialog({
                   Upload From Gallery
                 </Button>
 
-
                 <Button
                   type="button"
                   size="sm"
@@ -2167,11 +2230,8 @@ function ProductFormDialog({
                   <Plus className="size-4" />
                   Add Image
                 </Button>
-
               </div>
-
             </div>
-
 
             <input
               ref={fileInputRef}
@@ -2184,33 +2244,24 @@ function ProductFormDialog({
                   e.target.files,
                 );
 
-                e.target.value =
-                  "";
+                e.target.value = "";
               }}
             />
 
-
             <p className="text-xs text-muted-foreground">
-              Paste an image URL or
-              upload from your device
-              — the first image is used
+              Paste an image URL or upload from
+              your device — the first image is used
               as the main thumbnail.
             </p>
 
-
             {uploads.length > 0 && (
-
               <div className="space-y-2">
-
                 {uploads.map((u) => (
-
                   <div
                     key={u.name}
                     className="space-y-1"
                   >
-
                     <div className="flex justify-between text-xs text-muted-foreground">
-
                       <span className="line-clamp-1">
                         {u.name}
                       </span>
@@ -2218,42 +2269,29 @@ function ProductFormDialog({
                       <span>
                         {u.percent}%
                       </span>
-
                     </div>
 
-
                     <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
-
                       <div
                         className="h-full rounded-full bg-primary transition-all"
                         style={{
                           width: `${u.percent}%`,
                         }}
                       />
-
                     </div>
-
                   </div>
-
                 ))}
-
               </div>
-
             )}
 
-
             <div className="space-y-3">
-
               {form.images.map(
                 (img, i) => (
-
                   <div
                     key={i}
                     className="flex items-start gap-2"
                   >
-
                     {img.trim() ? (
-
                       <img
                         src={img.trim()}
                         alt={`Preview ${i + 1}`}
@@ -2263,19 +2301,13 @@ function ProductFormDialog({
                             "hidden";
                         }}
                       />
-
                     ) : (
-
                       <div className="grid size-14 shrink-0 place-items-center rounded-md border border-dashed border-border/60 text-[10px] text-muted-foreground">
-
                         {i === 0
                           ? "Main"
                           : `#${i + 1}`}
-
                       </div>
-
                     )}
-
 
                     <Input
                       value={img}
@@ -2288,7 +2320,6 @@ function ProductFormDialog({
                       placeholder="https://..."
                     />
 
-
                     <Button
                       type="button"
                       size="icon"
@@ -2298,28 +2329,20 @@ function ProductFormDialog({
                         removeImage(i)
                       }
                       disabled={
-                        form.images
-                          .length === 1
+                        form.images.length === 1
                       }
                       aria-label="Remove image"
                     >
                       <Trash2 className="size-4" />
                     </Button>
-
                   </div>
-
                 ),
               )}
-
             </div>
-
           </div>
 
-
           <div className="space-y-3 rounded-lg border border-border/60 p-3">
-
             <div className="flex items-center justify-between">
-
               <Label>
                 Product Options
               </Label>
@@ -2333,42 +2356,28 @@ function ProductFormDialog({
                 <Plus className="size-4" />
                 Add Option
               </Button>
-
             </div>
 
-
             <p className="text-xs text-muted-foreground">
-              e.g. Color → Black, White
-              · Size → S, M, L
+              e.g. Color → Black, White · Size → S, M, L
             </p>
 
-
-            {form.options.length ===
-              0 && (
-
+            {form.options.length === 0 && (
               <p className="text-xs text-muted-foreground">
                 No options added.
               </p>
-
             )}
 
-
             <div className="space-y-4">
-
               {form.options.map(
                 (opt, oi) => (
-
                   <div
                     key={oi}
                     className="space-y-2 rounded-lg border border-border/60 bg-secondary/30 p-3"
                   >
-
                     <div className="flex items-center gap-2">
-
                       <Input
-                        value={
-                          opt.name
-                        }
+                        value={opt.name}
                         onChange={(e) =>
                           setOptionName(
                             oi,
@@ -2378,42 +2387,32 @@ function ProductFormDialog({
                         placeholder="Option name (e.g. Color)"
                       />
 
-
                       <Button
                         type="button"
                         size="icon"
                         variant="ghost"
                         className="shrink-0 text-destructive"
                         onClick={() =>
-                          removeOption(
-                            oi,
-                          )
+                          removeOption(oi)
                         }
                         aria-label="Remove option"
                       >
                         <Trash2 className="size-4" />
                       </Button>
-
                     </div>
 
-
                     <div className="space-y-2">
-
                       {opt.values.map(
                         (
                           val,
                           vi,
                         ) => (
-
                           <div
                             key={vi}
                             className="flex items-center gap-2"
                           >
-
                             <Input
-                              value={
-                                val
-                              }
+                              value={val}
                               onChange={(e) =>
                                 setValue(
                                   oi,
@@ -2423,7 +2422,6 @@ function ProductFormDialog({
                               }
                               placeholder={`Value ${vi + 1} (e.g. Black)`}
                             />
-
 
                             <Button
                               type="button"
@@ -2437,22 +2435,17 @@ function ProductFormDialog({
                                 )
                               }
                               disabled={
-                                opt.values
-                                  .length ===
+                                opt.values.length ===
                                 1
                               }
                               aria-label="Remove value"
                             >
                               <Trash2 className="size-4" />
                             </Button>
-
                           </div>
-
                         ),
                       )}
-
                     </div>
-
 
                     <Button
                       type="button"
@@ -2465,16 +2458,11 @@ function ProductFormDialog({
                       <Plus className="size-4" />
                       Add Value
                     </Button>
-
                   </div>
-
                 ),
               )}
-
             </div>
-
           </div>
-
 
           <Button
             type="submit"
@@ -2482,7 +2470,6 @@ function ProductFormDialog({
             className="w-full"
             disabled={saving}
           >
-
             {saving && (
               <Loader2 className="size-4 animate-spin" />
             )}
@@ -2490,17 +2477,12 @@ function ProductFormDialog({
             {editing
               ? "Save Changes"
               : "Add Product"}
-
           </Button>
-
         </form>
-
       </DialogContent>
-
     </Dialog>
   );
 }
-
 
 function ReviewsPanel() {
 
